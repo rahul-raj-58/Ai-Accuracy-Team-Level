@@ -1198,14 +1198,16 @@
     const tick = () => {
       const sec = Math.round((Date.now() - totalT0) / 1000);
       let msg;
-      if (sec < 30) {
-        msg = `Loading from Metabase… ${sec}s elapsed. The dashboard will populate automatically when data arrives.`;
-      } else if (sec < 90) {
-        msg = `Loading from Metabase… ${sec}s elapsed. Large CSV exports can take 1–2 minutes on first load.`;
-      } else if (sec < 180) {
-        msg = `Still loading… ${sec}s elapsed. Metabase is slow on this export — if it doesn't finish in another minute, the query may need to be reduced in Metabase (it returns too many rows).`;
+      if (sec < 20) {
+        msg = `Loading from Metabase… ${sec}s elapsed. Dashboard will populate automatically when data arrives.`;
+      } else if (sec < 40) {
+        msg = `Loading from Metabase… ${sec}s elapsed. This may take 30-60 seconds depending on data volume.`;
+      } else if (sec < 60) {
+        msg = `Still loading… ${sec}s elapsed. Large exports can be slow. If this continues past 90 seconds, try clicking "Sync now" to retry.`;
+      } else if (sec < 85) {
+        msg = `Loading has taken ${sec}s. The Metabase query returns too many rows and is slow. Try clicking "Sync now" to retry, or ask your admin to optimize the query.`;
       } else {
-        msg = `Loading has taken ${sec}s. Metabase isn't returning the CSV in a reasonable time. The query likely returns too many rows — consider aggregating in Metabase, or click Sync to retry.`;
+        msg = `Loading timeout (${sec}s). The Metabase query is too large. Please ask your admin to: 1) Add filters (date range, limit rows), 2) Aggregate data in Metabase before export, or 3) Create a simpler question. Click "Sync now" to retry.`;
       }
       showInfo(msg);
     };
@@ -1280,7 +1282,7 @@
       }
     } catch (err) {
       stopLoadProgress();
-      showError("Couldn't load data: " + err.message + " — click Sync to retry.");
+      showError("Metabase export timeout: " + err.message + " · Your query may return too many rows. Try clicking 'Sync now' to retry, or contact your admin to optimize the Metabase question (add filters, aggregate, or reduce data volume).");
     } finally {
       isPolling = false;
       setSyncing(false);
