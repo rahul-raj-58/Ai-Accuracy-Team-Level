@@ -1802,6 +1802,19 @@
     $("#detailHeading").textContent = cfg.heading;
 
     const filtered = state._filteredCache || [];
+    
+    // If no data yet, show loading state
+    if (filtered.length === 0) {
+      const thead = panel.querySelector("thead");
+      const tbody = panel.querySelector("tbody");
+      thead.innerHTML = "";
+      tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 40px; color: var(--ink-faint);">
+        ⏳ Loading data… Please wait for Metabase to respond. This may take 30-120 seconds on first load.
+      </td></tr>`;
+      $("#detailFoot").innerHTML = `<span>Waiting for data from Metabase…</span>`;
+      return;
+    }
+    
     let rows;
     if (state.detail.card === "teams") {
       rows = buildTeamRows(filtered);
@@ -2764,8 +2777,6 @@
     // KPI cards — clickable drill-down
     document.querySelectorAll(".kpi[data-card]").forEach(btn => {
       btn.addEventListener("click", () => {
-        // Don't open detail until we have data
-        if (btn.classList.contains("loading")) return;
         selectCard(btn.dataset.card);
       });
     });
