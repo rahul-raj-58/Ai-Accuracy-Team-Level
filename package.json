@@ -4,6 +4,6 @@
   "description": "Team level analytics dashboard",
   "private": true,
   "engines": {
-    "node": "18.x"
+    "node": "24.x"
   }
 }
