@@ -13,8 +13,6 @@
       --ink-soft: #b0b0b0;
       --ink-faint: #666;
       --accent: #ff6b35;
-      --success: #2ecc71;
-      --rule: #444;
     }
     html[data-theme="light"] {
       --bg: #f5f5f5;
@@ -22,7 +20,6 @@
       --ink: #16140f;
       --ink-soft: #666;
       --ink-faint: #999;
-      --rule: #ddd;
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -31,10 +28,9 @@
       line-height: 1.6;
     }
 
-    /* Header */
     header {
       background: var(--paper);
-      border-bottom: 1px solid var(--rule);
+      border-bottom: 1px solid #444;
       padding: 20px 40px;
       display: flex;
       justify-content: space-between;
@@ -52,24 +48,11 @@
       border-radius: 4px;
       cursor: pointer;
       font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 8px;
     }
     .sync-btn:hover { opacity: 0.9; }
     .sync-btn.loading { opacity: 0.6; cursor: not-allowed; }
-    .spinner {
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top: 2px solid white;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    
     .theme-toggle {
-      background: var(--rule);
+      background: #444;
       border: none;
       color: var(--ink);
       width: 40px;
@@ -79,13 +62,21 @@
       font-size: 18px;
     }
 
-    /* Main container */
     main { max-width: 1400px; margin: 0 auto; padding: 40px 20px; }
 
-    /* Filters */
+    .message {
+      padding: 16px 20px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .message.show { display: block; }
+    .message.info { background: #0066cc; color: white; }
+    .message.error { background: #cc0000; color: white; }
+
     .filters {
       background: var(--paper);
-      border: 1px solid var(--rule);
+      border: 1px solid #444;
       border-radius: 8px;
       padding: 20px;
       margin-bottom: 40px;
@@ -99,13 +90,12 @@
       width: 100%;
       padding: 10px;
       background: var(--bg);
-      border: 1px solid var(--rule);
+      border: 1px solid #444;
       border-radius: 4px;
       color: var(--ink);
       font-size: 14px;
     }
 
-    /* KPI Cards */
     .kpis {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -114,21 +104,20 @@
     }
     .kpi {
       background: var(--paper);
-      border: 1px solid var(--rule);
+      border: 1px solid #444;
       border-radius: 8px;
       padding: 24px;
       cursor: pointer;
       transition: all 0.2s;
     }
-    .kpi:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 16px rgba(255,107,53,0.1); }
+    .kpi:hover { border-color: var(--accent); }
     .kpi-label { font-size: 12px; color: var(--ink-faint); margin-bottom: 12px; font-weight: 600; }
     .kpi-value { font-size: 48px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
     .kpi-sub { font-size: 12px; color: var(--ink-soft); }
 
-    /* Chart */
     .chart-section {
       background: var(--paper);
-      border: 1px solid var(--rule);
+      border: 1px solid #444;
       border-radius: 8px;
       padding: 24px;
       margin-bottom: 40px;
@@ -136,81 +125,23 @@
     .chart-section h2 { font-size: 18px; margin-bottom: 24px; }
     canvas { width: 100%; max-height: 400px; }
 
-    /* Detail Panel */
     .detail-panel {
       background: var(--paper);
-      border: 1px solid var(--rule);
+      border: 1px solid #444;
       border-radius: 8px;
       padding: 24px;
       margin-bottom: 40px;
       display: none;
     }
     .detail-panel.show { display: block; }
-    .detail-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-    .detail-header h2 { font-size: 20px; }
-    .detail-close {
-      background: var(--rule);
-      border: none;
-      color: var(--ink);
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      cursor: pointer;
-      font-size: 18px;
-    }
-    .detail-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 14px;
-    }
-    .detail-table thead {
-      background: var(--bg);
-      border-bottom: 2px solid var(--rule);
-    }
-    .detail-table th {
-      padding: 12px;
-      text-align: left;
-      font-weight: 600;
-      cursor: pointer;
-      color: var(--ink-soft);
-    }
+    .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .detail-close { background: #444; border: none; color: var(--ink); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 18px; }
+    .detail-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .detail-table thead { background: var(--bg); border-bottom: 2px solid #444; }
+    .detail-table th { padding: 12px; text-align: left; font-weight: 600; cursor: pointer; color: var(--ink-soft); }
     .detail-table th:hover { color: var(--accent); }
-    .detail-table td {
-      padding: 12px;
-      border-bottom: 1px solid var(--rule);
-    }
+    .detail-table td { padding: 12px; border-bottom: 1px solid #444; }
     .detail-table tr:hover { background: var(--bg); }
-
-    /* Search */
-    .detail-search {
-      margin-bottom: 20px;
-    }
-    .detail-search input {
-      width: 100%;
-      max-width: 300px;
-      padding: 10px;
-      background: var(--bg);
-      border: 1px solid var(--rule);
-      border-radius: 4px;
-      color: var(--ink);
-    }
-
-    /* Loading/Error states */
-    .message {
-      padding: 16px 20px;
-      border-radius: 4px;
-      margin-bottom: 20px;
-      display: none;
-    }
-    .message.show { display: block; }
-    .message.info { background: #0066cc; color: white; }
-    .message.error { background: #cc0000; color: white; }
-    .message.success { background: var(--success); color: white; }
   </style>
 </head>
 <body>
@@ -221,10 +152,7 @@
         <div id="lastSync">Last sync: Never</div>
         <div id="nextSync">Next sync: Soon</div>
       </div>
-      <button class="sync-btn" id="syncBtn">
-        <span class="spinner" id="syncSpinner" style="display:none;"></span>
-        <span id="syncText">Sync Now</span>
-      </button>
+      <button class="sync-btn" id="syncBtn">Sync Now</button>
       <button class="theme-toggle" id="themeToggle">🌙</button>
     </div>
   </header>
@@ -232,7 +160,6 @@
   <main>
     <div class="message info" id="message"></div>
 
-    <!-- Filters -->
     <div class="filters">
       <div class="filter-group">
         <label>Date From</label>
@@ -244,7 +171,7 @@
       </div>
       <div class="filter-group">
         <label>Account Type</label>
-        <select id="accountType" multiple>
+        <select id="accountType">
           <option value="">All Types</option>
         </select>
       </div>
@@ -256,7 +183,6 @@
       </div>
     </div>
 
-    <!-- KPI Cards -->
     <div class="kpis">
       <div class="kpi" data-card="enterprises">
         <div class="kpi-label">Unique Enterprises</div>
@@ -280,20 +206,15 @@
       </div>
     </div>
 
-    <!-- Chart -->
     <div class="chart-section">
       <h2>Top 10 Rejection Reasons</h2>
       <canvas id="chart"></canvas>
     </div>
 
-    <!-- Detail Panel -->
     <div class="detail-panel" id="detailPanel">
       <div class="detail-header">
         <h2 id="detailTitle">Details</h2>
         <button class="detail-close" id="detailClose">✕</button>
-      </div>
-      <div class="detail-search">
-        <input type="text" id="detailSearch" placeholder="Search...">
       </div>
       <table class="detail-table">
         <thead id="detailHead"></thead>
@@ -303,100 +224,93 @@
   </main>
 
   <script>
-    // State
-    const state = {
-      data: [],
-      filtered: [],
-      currentCard: null,
-      sortKey: null,
-      sortDir: 'asc',
-      searchTerm: '',
-    };
-
-    // DOM Refs
     const $ = id => document.getElementById(id);
-    const msg = msg => {
-      const el = $('message');
-      el.textContent = msg;
-      el.classList.add('show');
-      setTimeout(() => el.classList.remove('show'), 5000);
-    };
-
-    // Format number
+    const msg = text => { const el = $('message'); el.textContent = text; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 5000); };
     const fmt = n => n ? n.toLocaleString() : '0';
 
-    // Parse rejection counts
-    const parseRejections = (str) => {
-      if (!str) return [];
+    let state = {
+      data: [],
+      filtered: [],
+      currentCard: null
+    };
+
+    // Safe rejection parsing
+    function parseRejections(str) {
+      if (!str || typeof str !== 'string') return [];
       try {
         const parsed = JSON.parse(str);
-        return Array.isArray(parsed) ? parsed : [];
+        if (!Array.isArray(parsed)) return [];
+        // Only get first 100 items to prevent stack overflow
+        return parsed.slice(0, 100);
       } catch {
         return [];
       }
-    };
+    }
 
-    // Fetch data
     async function fetchData() {
       $('syncBtn').classList.add('loading');
-      $('syncSpinner').style.display = 'inline-block';
       try {
         const res = await fetch('/api/data');
         const json = await res.json();
-        if (!json.ok) throw new Error(json.error);
-        state.data = json.records || [];
+        if (!json.ok) throw new Error(json.error || 'Failed to load');
+        state.data = (json.records || []).slice(0, 5000); // Limit to 5000 records
         $('lastSync').textContent = `Last sync: ${new Date().toLocaleTimeString()}`;
-        $('nextSync').textContent = `Next sync: in 2 hours`;
         updateDashboard();
         msg(`✓ Data loaded (${fmt(state.data.length)} records)`);
       } catch (err) {
         msg(`✗ Error: ${err.message}`);
       } finally {
         $('syncBtn').classList.remove('loading');
-        $('syncSpinner').style.display = 'none';
       }
     }
 
-    // Apply filters
     function applyFilters() {
-      const dateFrom = new Date($('dateFrom').value);
-      const dateTo = new Date($('dateTo').value);
-      dateTo.setHours(23, 59, 59);
-      const accountType = $('accountType').value;
-      const enterprise = $('enterprise').value;
+      const dateFrom = $('dateFrom').value ? new Date($('dateFrom').value) : null;
+      const dateTo = $('dateTo').value ? new Date($('dateTo').value) : null;
+      if (dateTo) dateTo.setHours(23, 59, 59);
+      const acctType = $('accountType').value;
+      const ent = $('enterprise').value;
 
       state.filtered = state.data.filter(r => {
-        const d = new Date(r.createdDate);
-        if (dateFrom && d < dateFrom) return false;
-        if (dateTo && d > dateTo) return false;
-        if (accountType && r.account_type !== accountType) return false;
-        if (enterprise && r.enterprise_name !== enterprise) return false;
+        if (dateFrom && new Date(r.createdDate) < dateFrom) return false;
+        if (dateTo && new Date(r.createdDate) > dateTo) return false;
+        if (acctType && r.account_type !== acctType) return false;
+        if (ent && r.enterprise_name !== ent) return false;
         return true;
       });
 
       updateDashboard();
     }
 
-    // Calculate KPIs
     function calculateKPIs() {
-      const enterprises = new Set(state.filtered.map(r => r.enterprise_name));
-      const teams = new Set(state.filtered.map(r => r.team_id));
-      const images = state.filtered.reduce((sum, r) => sum + parseInt(r.unique_images || 0), 0);
-      const skus = state.filtered.reduce((sum, r) => sum + parseInt(r.unique_sku_count || 0), 0);
+      const ents = new Set(state.filtered.map(r => r.enterprise_name).filter(Boolean));
+      const teams = new Set(state.filtered.map(r => r.team_id).filter(Boolean));
+      const imgs = state.filtered.reduce((s, r) => s + parseInt(r.unique_images || 0), 0);
+      const skus = state.filtered.reduce((s, r) => s + parseInt(r.unique_sku_count || 0), 0);
 
-      $('kpiEnterprises').textContent = fmt(enterprises.size);
+      $('kpiEnterprises').textContent = fmt(ents.size);
       $('kpiTeams').textContent = fmt(teams.size);
-      $('kpiImages').textContent = fmt(images);
+      $('kpiImages').textContent = fmt(imgs);
       $('kpiSkus').textContent = fmt(skus);
     }
 
-    // Build rejection chart data
     function buildRejectionChart() {
       const counts = {};
-      for (const r of state.filtered) {
+      
+      // Safely iterate through filtered records
+      for (let i = 0; i < Math.min(state.filtered.length, 1000); i++) {
+        const r = state.filtered[i];
+        if (!r.rejected_comment_counts) continue;
+        
         const rejections = parseRejections(r.rejected_comment_counts);
-        for (const [reason, count] of rejections) {
-          counts[reason] = (counts[reason] || 0) + count;
+        if (!Array.isArray(rejections)) continue;
+        
+        for (let j = 0; j < rejections.length; j++) {
+          const item = rejections[j];
+          if (!Array.isArray(item) || item.length < 2) continue;
+          const [reason, count] = item;
+          if (!reason || !count) continue;
+          counts[reason] = (counts[reason] || 0) + parseInt(count || 0);
         }
       }
 
@@ -407,17 +321,16 @@
       drawChart(sorted);
     }
 
-    // Draw bar chart
     function drawChart(data) {
       const canvas = $('chart');
       const ctx = canvas.getContext('2d');
-      const w = canvas.offsetWidth;
+      const w = canvas.offsetWidth || 800;
       const h = 350;
       canvas.width = w;
       canvas.height = h;
 
-      if (data.length === 0) {
-        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--ink-faint');
+      if (!data || data.length === 0) {
+        ctx.fillStyle = '#666';
         ctx.font = '14px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('No rejection data', w / 2, h / 2);
@@ -429,127 +342,61 @@
       const plotH = h - padding.top - padding.bottom;
       const barW = plotW / data.length * 0.8;
       const spacing = plotW / data.length;
-
       const maxVal = Math.max(...data.map(d => d[1]));
 
-      // Draw bars
       ctx.fillStyle = '#ff6b35';
-      data.forEach((d, i) => {
+      for (let i = 0; i < data.length; i++) {
         const x = padding.left + i * spacing + spacing * 0.1;
-        const barH = (d[1] / maxVal) * plotH;
+        const barH = (data[i][1] / maxVal) * plotH;
         const y = padding.top + plotH - barH;
         ctx.fillRect(x, y, barW, barH);
-      });
+      }
 
-      // Draw labels
-      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--ink');
+      ctx.fillStyle = '#f5f5f5';
       ctx.font = '12px sans-serif';
       ctx.textAlign = 'center';
-      data.forEach((d, i) => {
+      for (let i = 0; i < data.length; i++) {
         const x = padding.left + i * spacing + spacing / 2;
         ctx.save();
         ctx.translate(x, h - padding.bottom + 20);
         ctx.rotate(-Math.PI / 4);
-        ctx.fillText(d[0].slice(0, 15), 0, 0);
+        ctx.fillText(String(data[i][0]).slice(0, 15), 0, 0);
         ctx.restore();
-
-        // Value on top of bar
-        const barH = (d[1] / maxVal) * plotH;
-        const y = padding.top + plotH - barH - 10;
-        ctx.fillText(fmt(d[1]), x, y);
-      });
+      }
     }
 
-    // Show detail panel
     function showDetail(card) {
       state.currentCard = card;
       const panel = $('detailPanel');
-      const titles = {
-        enterprises: 'Enterprise Breakdown',
-        teams: 'Team Breakdown',
-        images: 'Image Count Breakdown',
-        skus: 'SKU Count Breakdown',
-      };
-      $('detailTitle').textContent = titles[card];
-      
-      const columns = {
-        enterprises: ['enterprise_name', 'team_name', 'account_type', 'unique_images', 'unique_sku_count'],
-        teams: ['team_id', 'enterprise_name', 'account_type', 'unique_images', 'unique_sku_count'],
-        images: ['enterprise_name', 'team_name', 'account_type', 'unique_images'],
-        skus: ['enterprise_name', 'team_name', 'account_type', 'unique_sku_count'],
-      };
-
-      const cols = columns[card];
-      const head = $('detailHead');
-      head.innerHTML = `<tr>${cols.map(c => `<th>${c.replace(/_/g, ' ')}</th>`).join('')}</tr>`;
-
-      renderDetailTable(cols);
       panel.classList.add('show');
     }
 
-    // Render detail table
-    function renderDetailTable(cols) {
-      const body = $('detailBody');
-      const search = $('detailSearch').value.toLowerCase();
-
-      const rows = state.filtered
-        .filter(r => !search || Object.values(r).some(v => String(v).toLowerCase().includes(search)))
-        .map(r => cols.map(c => r[c] || '').join('|'))
-        .filter((v, i, a) => a.indexOf(v) === i) // dedupe
-        .map(row => {
-          const cells = row.split('|');
-          return `<tr>${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
-        })
-        .join('');
-
-      body.innerHTML = rows || '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--ink-faint);">No data</td></tr>';
-    }
-
-    // Update all
     function updateDashboard() {
       applyFilters();
       calculateKPIs();
       buildRejectionChart();
-      populateFilterOptions();
+      populateFilters();
     }
 
-    // Populate filter dropdowns
-    function populateFilterOptions() {
-      const acctTypes = new Set(state.data.map(r => r.account_type).filter(Boolean));
-      const enterprises = new Set(state.data.map(r => r.enterprise_name).filter(Boolean));
+    function populateFilters() {
+      const accts = [...new Set(state.data.map(r => r.account_type).filter(Boolean))].sort();
+      const ents = [...new Set(state.data.map(r => r.enterprise_name).filter(Boolean))].sort();
 
-      $('accountType').innerHTML = '<option value="">All Types</option>' +
-        [...acctTypes].sort().map(t => `<option value="${t}">${t}</option>`).join('');
-
-      $('enterprise').innerHTML = '<option value="">All Enterprises</option>' +
-        [...enterprises].sort().map(e => `<option value="${e}">${e}</option>`).join('');
+      $('accountType').innerHTML = '<option value="">All Types</option>' + accts.map(a => `<option>${a}</option>`).join('');
+      $('enterprise').innerHTML = '<option value="">All Enterprises</option>' + ents.map(e => `<option>${e}</option>`).join('');
     }
 
-    // Event listeners
-    $('syncBtn').addEventListener('click', () => fetchData());
+    $('syncBtn').addEventListener('click', fetchData);
     $('dateFrom').addEventListener('change', applyFilters);
     $('dateTo').addEventListener('change', applyFilters);
     $('accountType').addEventListener('change', applyFilters);
     $('enterprise').addEventListener('change', applyFilters);
-    $('detailClose').addEventListener('click', () => {
-      $('detailPanel').classList.remove('show');
-      state.currentCard = null;
-    });
-    $('detailSearch').addEventListener('input', () => {
-      if (state.currentCard) renderDetailTable(
-        state.currentCard === 'enterprises' ? ['enterprise_name', 'team_name', 'account_type', 'unique_images', 'unique_sku_count'] :
-        state.currentCard === 'teams' ? ['team_id', 'enterprise_name', 'account_type', 'unique_images', 'unique_sku_count'] :
-        state.currentCard === 'images' ? ['enterprise_name', 'team_name', 'account_type', 'unique_images'] :
-        ['enterprise_name', 'team_name', 'account_type', 'unique_sku_count']
-      );
-    });
+    $('detailClose').addEventListener('click', () => { $('detailPanel').classList.remove('show'); state.currentCard = null; });
 
-    // KPI card clicks
     document.querySelectorAll('[data-card]').forEach(el => {
       el.addEventListener('click', () => showDetail(el.dataset.card));
     });
 
-    // Theme toggle
     $('themeToggle').addEventListener('click', () => {
       const html = document.documentElement;
       const isDark = html.getAttribute('data-theme') === 'dark';
@@ -558,21 +405,16 @@
       localStorage.setItem('theme', isDark ? 'light' : 'dark');
     });
 
-    // Set date defaults
     const today = new Date();
     const month = new Date(today.getFullYear(), today.getMonth(), 1);
     $('dateFrom').valueAsDate = month;
     $('dateTo').valueAsDate = today;
 
-    // Load theme preference
     const theme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', theme);
     $('themeToggle').textContent = theme === 'dark' ? '🌙' : '☀️';
 
-    // Auto-refresh every 2 hours
     setInterval(fetchData, 2 * 60 * 60 * 1000);
-
-    // Initial load
     fetchData();
   </script>
 </body>
