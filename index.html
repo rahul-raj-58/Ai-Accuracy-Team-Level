@@ -1,0 +1,2807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Spyne · Image Operations Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* Light theme (default) */
+  :root {
+    --bg: #f5f3ee;
+    --paper: #ffffff;
+    --ink: #16140f;
+    --ink-soft: #4a463c;
+    --ink-faint: #8a8475;
+    --rule: #d9d4c5;
+    --accent: #ff4d1f;
+    --accent-soft: #ffe9e1;
+    --good: #1f7a4d;
+    --warn: #a35400;
+    --shadow: 0 1px 0 rgba(22,20,15,.04), 0 8px 24px -12px rgba(22,20,15,.12);
+  }
+
+  /* Dark theme */
+  html[data-theme="dark"] {
+    --bg: #1a1a1a;
+    --paper: #2d2d2d;
+    --ink: #f5f5f5;
+    --ink-soft: #b8b8b8;
+    --ink-faint: #707070;
+    --rule: #3d3d3d;
+    --accent: #ff6b35;
+    --accent-soft: #3d2416;
+    --good: #2ecc71;
+    --warn: #e67e22;
+    --shadow: 0 1px 0 rgba(0,0,0,.2), 0 8px 24px -12px rgba(0,0,0,.4);
+  }
+
+  /* Also respond to system preference if no data-theme is set */
+  @media (prefers-color-scheme: dark) {
+    html:not([data-theme]) {
+      --bg: #1a1a1a;
+      --paper: #2d2d2d;
+      --ink: #f5f5f5;
+      --ink-soft: #b8b8b8;
+      --ink-faint: #707070;
+      --rule: #3d3d3d;
+      --accent: #ff6b35;
+      --accent-soft: #3d2416;
+      --good: #2ecc71;
+      --warn: #e67e22;
+      --shadow: 0 1px 0 rgba(0,0,0,.2), 0 8px 24px -12px rgba(0,0,0,.4);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Inter Tight", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Layout ---------- */
+  .shell {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 32px 40px 80px;
+  }
+
+  /* ---------- Header ---------- */
+  header.top {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 24px;
+    margin-bottom: 32px;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .brand .eyebrow {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .brand h1 {
+    font-family: "Fraunces", serif;
+    font-weight: 500;
+    font-size: 38px;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+  .brand h1 em {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 400;
+  }
+
+  .status-cluster {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .last-updated {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: var(--ink-faint);
+    text-align: right;
+    line-height: 1.5;
+  }
+  .last-updated .val { color: var(--ink); font-weight: 500; }
+
+  .timer-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+  .timer-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--good);
+    box-shadow: 0 0 0 0 rgba(31,122,77,.5);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(31,122,77,.45); }
+    70%  { box-shadow: 0 0 0 8px rgba(31,122,77,0); }
+    100% { box-shadow: 0 0 0 0 rgba(31,122,77,0); }
+  }
+  .timer-dot.syncing { background: var(--accent); animation: pulse-accent 1s infinite; }
+  @keyframes pulse-accent {
+    0%   { box-shadow: 0 0 0 0 rgba(255,77,31,.5); }
+    70%  { box-shadow: 0 0 0 10px rgba(255,77,31,0); }
+    100% { box-shadow: 0 0 0 0 rgba(255,77,31,0); }
+  }
+
+  button.sync-btn {
+    appearance: none;
+    border: none;
+    background: var(--ink);
+    color: var(--bg);
+    font-family: "Inter Tight", sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    padding: 11px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform .12s ease, background .12s ease;
+  }
+  button.sync-btn:hover:not(:disabled) { background: var(--accent); transform: translateY(-1px); }
+  button.sync-btn:disabled { opacity: 0.55; cursor: wait; }
+  button.sync-btn svg { width: 14px; height: 14px; }
+  button.sync-btn.is-syncing svg { animation: spin .9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  button.theme-btn {
+    appearance: none;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    color: var(--ink-soft);
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .12s ease;
+    padding: 0;
+  }
+  button.theme-btn:hover {
+    border-color: var(--ink-soft);
+    color: var(--ink);
+  }
+  button.theme-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+  button.theme-btn .theme-icon-sun,
+  button.theme-btn .theme-icon-moon {
+    transition: opacity .2s ease;
+  }
+
+  /* ---------- Filters bar ---------- */
+  .filters {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 16px;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 28px;
+    box-shadow: var(--shadow);
+  }
+  .filter-group { display: flex; flex-direction: column; gap: 8px; }
+  .filter-group label {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .field {
+    border: 1px solid var(--rule);
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-family: "Inter Tight", sans-serif;
+    font-size: 13px;
+    color: var(--ink);
+    outline: none;
+    width: 100%;
+    transition: border-color .12s, background .12s;
+  }
+  .field:focus { border-color: var(--ink); background: var(--paper); }
+
+  .col-date    { grid-column: span 2; }
+  .col-from    { grid-column: span 2; }
+  .col-to      { grid-column: span 2; }
+  .col-ent     { grid-column: span 2; }
+  .col-team    { grid-column: span 2; }
+  .col-acct    { grid-column: span 2; }
+
+  /* Custom multi-select */
+  .multi {
+    position: relative;
+    user-select: none;
+  }
+  .multi-trigger {
+    border: 1px solid var(--rule);
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    transition: border-color .12s, background .12s;
+  }
+  .multi-trigger:hover { border-color: var(--ink-soft); }
+  .multi.open .multi-trigger { border-color: var(--ink); background: var(--paper); }
+  .multi-trigger .caret { font-size: 10px; color: var(--ink-faint); }
+  .multi-panel {
+    position: absolute;
+    top: calc(100% + 6px); left: 0; right: 0;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    box-shadow: 0 12px 32px -8px rgba(22,20,15,.18);
+    z-index: 50;
+    max-height: 320px;
+    display: none;
+    flex-direction: column;
+  }
+  .multi.open .multi-panel { display: flex; }
+  .multi-search {
+    border: none;
+    border-bottom: 1px solid var(--rule);
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    background: transparent;
+  }
+  .multi-actions {
+    display: flex; justify-content: space-between;
+    border-bottom: 1px solid var(--rule);
+    padding: 6px 10px;
+  }
+  .multi-actions button {
+    background: none; border: none; cursor: pointer;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    padding: 4px 6px;
+  }
+  .multi-actions button:hover { color: var(--accent); }
+  .multi-list { overflow-y: auto; padding: 4px 0; }
+  .multi-opt {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 12px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .multi-opt:hover { background: var(--bg); }
+  .multi-opt input { accent-color: var(--accent); }
+  .multi-opt .count { margin-left: auto; color: var(--ink-faint); font-family: "JetBrains Mono", monospace; font-size: 11px; }
+
+  /* ---------- KPI Cards ---------- */
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 32px;
+  }
+  .kpis.kpis-5col {
+    grid-template-columns: repeat(5, 1fr);
+  }
+  .kpi {
+    /* Button reset */
+    appearance: none;
+    -webkit-appearance: none;
+    border: 1px solid var(--rule);
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    width: 100%;
+
+    background: var(--paper);
+    border-radius: 14px;
+    padding: 24px 24px 22px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+  }
+  .kpi:hover { transform: translateY(-2px); border-color: var(--ink-soft); }
+  .kpi:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .kpi:active { transform: translateY(0); }
+  .kpi.is-selected {
+    border-color: var(--ink);
+    box-shadow: 0 1px 0 rgba(22,20,15,.04), 0 14px 30px -10px rgba(22,20,15,.22);
+    transform: translateY(-2px);
+  }
+  .kpi.is-selected .kpi-hint {
+    color: var(--accent);
+  }
+  .kpi .kpi-label {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 14px;
+  }
+  .kpi .kpi-value {
+    font-family: "Fraunces", serif;
+    font-weight: 500;
+    font-size: 52px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi .kpi-sub {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+  .kpi .kpi-hint {
+    position: absolute;
+    top: 22px; right: 24px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    opacity: 0;
+    transition: opacity .18s ease, color .18s ease;
+  }
+  .kpi:hover .kpi-hint,
+  .kpi:focus-visible .kpi-hint,
+  .kpi.is-selected .kpi-hint { opacity: 1; }
+  .kpi .kpi-bar {
+    position: absolute;
+    left: 0; bottom: 0;
+    height: 3px;
+    background: var(--accent);
+    width: 0;
+    transition: width .6s cubic-bezier(.2,.7,.2,1);
+  }
+  .kpi.k1 .kpi-bar { background: #1f7a4d; }
+  .kpi.k2 .kpi-bar { background: var(--accent); }
+  .kpi.k3 .kpi-bar { background: #2a4a7f; }
+  .kpi.k4 .kpi-bar { background: #a35400; }
+  .kpi.k5 .kpi-bar { background: #7c3aed; }
+  .kpi.is-selected.k1 { border-color: #1f7a4d; }
+  .kpi.is-selected.k2 { border-color: var(--accent); }
+  .kpi.is-selected.k3 { border-color: #2a4a7f; }
+  .kpi.is-selected.k4 { border-color: #a35400; }
+  .kpi.is-selected.k5 { border-color: #7c3aed; }
+
+  .kpi.loading { cursor: default; }
+  .kpi.loading .kpi-hint { display: none; }
+  .kpi.loading .kpi-value { color: var(--ink-faint); }
+  .kpi.loading .kpi-value::after {
+    content: ""; display: inline-block;
+    width: 8px; height: 8px; margin-left: 4px;
+    border-radius: 50%; background: var(--ink-faint);
+    animation: blink 1s infinite;
+  }
+  @keyframes blink { 50% { opacity: 0.2; } }
+
+  /* ---------- Detail panel (drill-down) ---------- */
+  .detail {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    margin-bottom: 28px;
+    overflow: hidden;
+    animation: detailIn .28s cubic-bezier(.2,.7,.2,1);
+  }
+  @keyframes detailIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .detail-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--rule);
+    flex-wrap: wrap;
+  }
+  .detail-title { display: flex; flex-direction: column; gap: 2px; }
+  .detail-eyebrow {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .detail-title h2 {
+    font-family: "Fraunces", serif;
+    font-weight: 500;
+    font-size: 22px;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .detail-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .detail-search {
+    width: 240px;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  .detail-close {
+    appearance: none;
+    border: 1px solid var(--rule);
+    background: var(--bg);
+    color: var(--ink-soft);
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background .12s, color .12s;
+  }
+  .detail-close:hover { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+
+  .detail-table-wrap {
+    max-height: 480px;
+    overflow-y: auto;
+    overflow-x: auto;
+  }
+  .detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .detail-table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--paper);
+    border-bottom: 1px solid var(--rule);
+    text-align: left;
+    padding: 12px 18px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .detail-table thead th:hover { color: var(--ink); }
+  .detail-table thead th.num { text-align: right; }
+  .detail-table thead th .sort-ind {
+    margin-left: 4px;
+    color: var(--accent);
+    font-size: 9px;
+  }
+  .detail-table tbody td {
+    padding: 11px 18px;
+    border-bottom: 1px solid #efece1;
+    font-variant-numeric: tabular-nums;
+  }
+  .detail-table tbody td.num { text-align: right; font-family: "JetBrains Mono", monospace; }
+  .detail-table tbody td.muted { color: var(--ink-faint); }
+  .detail-table tbody tr:hover td { background: var(--bg); }
+  .detail-table tbody tr.total-row td {
+    font-weight: 600;
+    background: #f9f7ef;
+    border-top: 1px solid var(--rule);
+  }
+  .detail-table tbody td .acct-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--bg);
+    border: 1px solid var(--rule);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    color: var(--ink-soft);
+  }
+  .detail-table tbody td .bar {
+    display: inline-block;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-right: 8px;
+    opacity: 0.8;
+  }
+  .detail-foot {
+    padding: 10px 24px;
+    border-top: 1px solid var(--rule);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  @media (max-width: 640px) {
+    .detail-head { flex-direction: column; align-items: flex-start; }
+    .detail-search { width: 100%; }
+    .detail-actions { width: 100%; justify-content: space-between; }
+  }
+
+  /* ---------- Trend visualizations ---------- */
+  .trends {
+    margin-bottom: 28px;
+  }
+  .trend-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+  .trend-card {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    padding: 20px 24px;
+    box-shadow: var(--shadow);
+  }
+  .trend-header {
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 12px;
+  }
+  .trend-header h3 {
+    font-family: "Fraunces", serif;
+    font-weight: 500;
+    font-size: 16px;
+    margin: 0 0 4px 0;
+    letter-spacing: -0.01em;
+  }
+  .trend-sub {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0;
+  }
+  .trend-canvas {
+    width: 100%;
+    max-height: 280px;
+    margin-bottom: 12px;
+  }
+  .trend-legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 8px;
+    padding-top: 2px;
+  }
+
+  @media (max-width: 1100px) {
+    .trend-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    .detail-head { flex-direction: column; align-items: flex-start; }
+    .detail-search { width: 100%; }
+    .detail-actions { width: 100%; justify-content: space-between; }
+  }
+
+  /* ---------- Meta / footer line ---------- */
+  .meta-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    padding-top: 18px;
+    border-top: 1px solid var(--rule);
+    letter-spacing: 0.04em;
+  }
+  .meta-line .right { display: flex; gap: 18px; }
+  .pill {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    padding: 4px 10px;
+    color: var(--ink-soft);
+  }
+  .pill.alert { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+
+  /* ---------- Error / info banner ---------- */
+  .err {
+    background: #fef2ef;
+    color: #8a2a0e;
+    border: 1px solid #f3c3b3;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    display: none;
+  }
+  html[data-theme="dark"] .err {
+    background: #3d2416;
+    color: #ff9666;
+    border-color: #5d3d2d;
+  }
+  .err.show { display: block; }
+  .err.info {
+    background: #eef4f9;
+    color: #244a73;
+    border-color: #c7d9ea;
+  }
+  html[data-theme="dark"] .err.info {
+    background: #1a3a52;
+    color: #66b8ff;
+    border-color: #2d4a6d;
+  }
+
+  /* ---------- Rejected comments section ---------- */
+  .rejected-section {
+    margin-bottom: 28px;
+  }
+  .rejected-container {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    padding: 20px 24px;
+    box-shadow: var(--shadow);
+  }
+  .rejected-header {
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 12px;
+  }
+  .rejected-header h2 {
+    font-family: "Fraunces", serif;
+    font-weight: 500;
+    font-size: 18px;
+    margin: 0 0 4px 0;
+    letter-spacing: -0.01em;
+  }
+  .rejected-sub {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0;
+  }
+  .rejected-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .rejected-item {
+    padding: 12px 16px;
+    background: var(--bg);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all .12s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .rejected-item:hover {
+    border-color: var(--accent);
+    background: var(--paper);
+    transform: translateX(2px);
+  }
+  .rejected-item-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .rejected-item-text {
+    font-family: "Inter Tight", sans-serif;
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .rejected-item-count {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+  }
+  .rejected-item-badge {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--bg);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 600;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  /* Rejected modal */
+  .rejected-modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+  html[data-theme="dark"] .rejected-modal {
+    background: rgba(0, 0, 0, 0.7);
+  }
+  .rejected-modal-content {
+    background: var(--paper);
+    border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    max-width: 800px;
+    width: 100%;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+  }
+  html[data-theme="dark"] .rejected-modal-content {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  }
+  .rejected-modal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .rejected-modal-head h3 {
+    font-family: "Fraunces", serif;
+    font-weight: 500;
+    font-size: 18px;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .rejected-close {
+    appearance: none;
+    border: 1px solid var(--rule);
+    background: var(--bg);
+    color: var(--ink-soft);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    transition: all .12s ease;
+  }
+  .rejected-close:hover {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+  }
+  .rejected-modal-table-wrap {
+    flex: 1;
+    overflow-y: auto;
+  }
+  .rejected-modal-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .rejected-modal-table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--paper);
+    border-bottom: 1px solid var(--rule);
+    text-align: left;
+    padding: 10px 16px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 600;
+  }
+  .rejected-modal-table tbody td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--rule);
+    font-variant-numeric: tabular-nums;
+  }
+  .rejected-modal-table tbody td.num {
+    text-align: right;
+    font-family: "JetBrains Mono", monospace;
+  }
+  .rejected-modal-table tbody tr:hover td {
+    background: var(--bg);
+  }
+  .rejected-modal-foot {
+    padding: 10px 24px;
+    border-top: 1px solid var(--rule);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 1100px) {
+    .col-date { grid-column: span 6; }
+    .col-from { grid-column: span 3; }
+    .col-to   { grid-column: span 3; }
+    .col-ent  { grid-column: span 6; }
+    .col-acct { grid-column: span 6; }
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .shell { padding: 20px 18px 60px; }
+    .brand h1 { font-size: 28px; }
+    .filters { grid-template-columns: 1fr; }
+    .col-date, .col-from, .col-to, .col-ent, .col-acct { grid-column: span 1; }
+    .kpis { grid-template-columns: 1fr; }
+    .kpi .kpi-value { font-size: 44px; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="top">
+    <div class="brand">
+      <span class="eyebrow">Spyne · Metabase Live</span>
+      <h1>Image Operations <em>Overview</em></h1>
+    </div>
+    <div class="status-cluster">
+      <div class="last-updated">
+        <div>Last sync · <span class="val" id="lastSync">—</span></div>
+        <div>Rows loaded · <span class="val" id="rowCount">—</span></div>
+      </div>
+      <span class="timer-chip" title="Auto-refresh every hour">
+        <span class="timer-dot" id="timerDot"></span>
+        Next sync in <span id="countdown">60:00</span>
+      </span>
+      <button class="theme-btn" id="themeBtn" title="Toggle dark/light theme" aria-label="Toggle theme">
+        <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+      <button class="sync-btn" id="syncBtn" title="Force refresh from Metabase">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/>
+        </svg>
+        <span id="syncBtnLabel">Sync now</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="err" id="errBanner"></div>
+
+  <section class="filters">
+    <div class="filter-group col-date">
+      <label for="datePreset">Date range · created</label>
+      <select class="field" id="datePreset">
+        <option value="this_week">This week</option>
+        <option value="this_month" selected>This month</option>
+        <option value="last_3_weeks">Last 3 weeks</option>
+        <option value="last_3_months">Last 3 months</option>
+        <option value="custom">Custom range</option>
+        <option value="all">All time</option>
+      </select>
+    </div>
+    <div class="filter-group col-from">
+      <label for="dateFrom">From</label>
+      <input type="date" class="field" id="dateFrom" disabled />
+    </div>
+    <div class="filter-group col-to">
+      <label for="dateTo">To</label>
+      <input type="date" class="field" id="dateTo" disabled />
+    </div>
+    <div class="filter-group col-ent">
+      <label>Enterprise name</label>
+      <div class="multi" id="msEnterprise">
+        <div class="multi-trigger"><span class="multi-label">All enterprises</span><span class="caret">▼</span></div>
+        <div class="multi-panel">
+          <input type="text" class="multi-search" placeholder="Search enterprises…" />
+          <div class="multi-actions">
+            <button data-act="all">Select all</button>
+            <button data-act="none">Clear</button>
+          </div>
+          <div class="multi-list"></div>
+        </div>
+      </div>
+    </div>
+    <div class="filter-group col-team">
+      <label>Team name</label>
+      <div class="multi" id="msTeam">
+        <div class="multi-trigger"><span class="multi-label">All teams</span><span class="caret">▼</span></div>
+        <div class="multi-panel">
+          <input type="text" class="multi-search" placeholder="Search teams…" />
+          <div class="multi-actions">
+            <button data-act="all">Select all</button>
+            <button data-act="none">Clear</button>
+          </div>
+          <div class="multi-list"></div>
+        </div>
+      </div>
+    </div>
+    <div class="filter-group col-acct">
+      <label>Account type</label>
+      <div class="multi" id="msAccount">
+        <div class="multi-trigger"><span class="multi-label">All account types</span><span class="caret">▼</span></div>
+        <div class="multi-panel">
+          <input type="text" class="multi-search" placeholder="Search…" />
+          <div class="multi-actions">
+            <button data-act="all">Select all</button>
+            <button data-act="none">Clear</button>
+          </div>
+          <div class="multi-list"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="kpis kpis-5col">
+    <button type="button" class="kpi k1 loading" data-card="enterprises" aria-pressed="false">
+      <div class="kpi-label">Unique enterprises</div>
+      <div class="kpi-value" id="kEnt">—</div>
+      <div class="kpi-sub" id="kEntSub">awaiting data…</div>
+      <div class="kpi-bar"></div>
+      <span class="kpi-hint">click to break down</span>
+    </button>
+    <button type="button" class="kpi k5 loading" data-card="teams" aria-pressed="false">
+      <div class="kpi-label">Unique teams</div>
+      <div class="kpi-value" id="kTeam">—</div>
+      <div class="kpi-sub" id="kTeamSub">awaiting data…</div>
+      <div class="kpi-bar"></div>
+      <span class="kpi-hint">click to break down</span>
+    </button>
+    <button type="button" class="kpi k2 loading" data-card="images" aria-pressed="false">
+      <div class="kpi-label">Unique image IDs</div>
+      <div class="kpi-value" id="kImg">—</div>
+      <div class="kpi-sub" id="kImgSub">awaiting data…</div>
+      <div class="kpi-bar"></div>
+      <span class="kpi-hint">click to break down</span>
+    </button>
+    <button type="button" class="kpi k3 loading" data-card="skus" aria-pressed="false">
+      <div class="kpi-label">Unique SKU IDs</div>
+      <div class="kpi-value" id="kSku">—</div>
+      <div class="kpi-sub" id="kSkuSub">awaiting data…</div>
+      <div class="kpi-bar"></div>
+      <span class="kpi-hint">click to break down</span>
+    </button>
+    <button type="button" class="kpi k4 loading" data-card="edited" aria-pressed="false">
+      <div class="kpi-label">AI Accuracy <span style="color:var(--ink-faint);font-weight:400">· 100 - edit%</span></div>
+      <div class="kpi-value" id="kEdit">—</div>
+      <div class="kpi-sub" id="kEditSub">awaiting data…</div>
+      <div class="kpi-bar"></div>
+      <span class="kpi-hint">click to break down</span>
+    </button>
+  </section>
+
+  <section class="detail" id="detailPanel" hidden>
+    <div class="detail-head">
+      <div class="detail-title">
+        <span class="detail-eyebrow" id="detailEyebrow">Breakdown</span>
+        <h2 id="detailHeading">—</h2>
+      </div>
+      <div class="detail-actions">
+        <input type="text" class="detail-search field" id="detailSearch" placeholder="Filter by enterprise…" />
+        <button type="button" class="detail-close" id="detailClose" aria-label="Close">×</button>
+      </div>
+    </div>
+    <div class="detail-table-wrap">
+      <table class="detail-table" id="detailTable">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="detail-foot" id="detailFoot"></div>
+  </section>
+
+  <!-- Trend lines: images, edited images, AI accuracy over time -->
+  <section class="trends" id="trendsSection" hidden>
+    <div class="trend-grid">
+      <div class="trend-card">
+        <div class="trend-header">
+          <h3>Daily trend · Images & edits</h3>
+          <p class="trend-sub">unique images and edited images by date</p>
+        </div>
+        <canvas id="trendCanvas1" class="trend-canvas" height="240"></canvas>
+        <div class="trend-legend">
+          <span class="legend-item" style="border-left: 3px solid #ff4d1f;"><strong>Unique images</strong></span>
+          <span class="legend-item" style="border-left: 3px solid #a35400;"><strong>Edited images</strong></span>
+          <span class="legend-item" style="border-left: 3px solid #8a8475; opacity: 0.6;"><strong>AI accuracy %</strong></span>
+        </div>
+      </div>
+      <div class="trend-card">
+        <div class="trend-header">
+          <h3>Account type breakdown</h3>
+          <p class="trend-sub">images by account type over time</p>
+        </div>
+        <canvas id="trendCanvas2" class="trend-canvas" height="240"></canvas>
+        <div class="trend-legend" id="acctLegend"></div>
+      </div>
+      <div class="trend-card">
+        <div class="trend-header">
+          <h3>Top rejected comments · Trend</h3>
+          <p class="trend-sub">count of rejection reasons over time</p>
+        </div>
+        <canvas id="trendCanvas3" class="trend-canvas" height="240"></canvas>
+        <div class="trend-legend" id="rejectedLegend"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Rejected comments analysis -->
+  <section class="rejected-section" id="rejectedSection" hidden>
+    <div class="rejected-container">
+      <div class="rejected-header">
+        <h2>Rejected Comments Analysis</h2>
+        <p class="rejected-sub">Most common rejection reasons by count</p>
+      </div>
+      <div class="rejected-list" id="rejectedList"></div>
+    </div>
+    <!-- Drill-down detail modal -->
+    <div class="rejected-modal" id="rejectedModal" hidden>
+      <div class="rejected-modal-content">
+        <div class="rejected-modal-head">
+          <h3 id="rejectedModalTitle">—</h3>
+          <button type="button" class="rejected-close" id="rejectedClose" aria-label="Close">×</button>
+        </div>
+        <div class="rejected-modal-table-wrap">
+          <table class="rejected-modal-table" id="rejectedModalTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="rejected-modal-foot" id="rejectedModalFoot"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="meta-line">
+    <div>Source · metabase.spyne.ai (public) · cached 1h</div>
+    <div class="right">
+      <span class="pill" id="filteredPill">Showing all rows</span>
+      <span class="pill" id="cachePill">—</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---------------- State ----------------
+  const state = {
+    records: [],
+    fetchedAt: 0,
+    filters: {
+      datePreset: "this_month",
+      from: null,
+      to: null,
+      enterprises: new Set(),   // empty = "all"
+      teams: new Set(),         // empty = "all"
+      accounts: new Set(),      // empty = "all"
+    },
+    detail: {
+      card: null,             // 'enterprises' | 'teams' | 'images' | 'skus' | 'edited' | null
+      sortKey: null,          // string column key
+      sortDir: "desc",        // 'asc' | 'desc'
+      search: "",
+    },
+  };
+
+  const REFRESH_MS = 60 * 60 * 1000; // 1 hour
+  let nextRefreshAt = null;  // null until first successful load
+  let countdownTimer = null;
+
+  // ---------------- Helpers ----------------
+  const $ = (sel) => document.querySelector(sel);
+  const fmt = (n) => new Intl.NumberFormat("en-US").format(n);
+  const fmtDateTime = (ms) => new Date(ms).toLocaleString(undefined, {
+    month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
+  });
+
+  function parseDate(s) {
+    if (!s) return null;
+    // Try ISO first
+    const d = new Date(s);
+    if (!isNaN(d)) return d;
+    return null;
+  }
+
+  function startOfDay(d) { const x = new Date(d); x.setHours(0,0,0,0); return x; }
+  function endOfDay(d)   { const x = new Date(d); x.setHours(23,59,59,999); return x; }
+
+  function rangeForPreset(preset, customFrom, customTo) {
+    const now = new Date();
+    if (preset === "this_week") {
+      const start = new Date(now);
+      const day = (start.getDay() + 6) % 7; // Monday=0
+      start.setDate(start.getDate() - day);
+      return [startOfDay(start), endOfDay(now)];
+    }
+    if (preset === "this_month") {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      return [startOfDay(start), endOfDay(now)];
+    }
+    if (preset === "last_3_weeks") {
+      const start = new Date(now); start.setDate(start.getDate() - 21);
+      return [startOfDay(start), endOfDay(now)];
+    }
+    if (preset === "last_3_months") {
+      const start = new Date(now); start.setMonth(start.getMonth() - 3);
+      return [startOfDay(start), endOfDay(now)];
+    }
+    if (preset === "custom") {
+      const f = customFrom ? startOfDay(new Date(customFrom)) : null;
+      const t = customTo   ? endOfDay(new Date(customTo))   : null;
+      return [f, t];
+    }
+    return [null, null]; // all time
+  }
+
+  // ---------------- Fetch ----------------
+  const METABASE_URL = "https://metabase.spyne.ai/public/question/a594963c-2ba3-4348-b305-cbf98d64fa45";
+  const FIELDS = [
+    // Aggregated data columns (pre-computed by Metabase)
+    "createdDate", "enterprise_id", "enterprise_name", "account_type",
+    "team_id", "team_name", 
+    "unique_sku_count", "unique_images", "edited_images",
+    "edited_image_ids", "rejected_comments_array"
+  ];
+
+  let loadProgressTimer = null;
+  let pollAbort = false;        // user-triggered stop
+  let isPolling = false;
+
+  function startLoadProgress(totalT0) {
+    stopLoadProgress();
+    const tick = () => {
+      const sec = Math.round((Date.now() - totalT0) / 1000);
+      let msg;
+      if (sec < 30) {
+        msg = `Loading from Metabase… ${sec}s elapsed. The dashboard will populate automatically when data arrives.`;
+      } else if (sec < 90) {
+        msg = `Loading from Metabase… ${sec}s elapsed. Large CSV exports can take 1–2 minutes on first load.`;
+      } else if (sec < 180) {
+        msg = `Still loading… ${sec}s elapsed. Metabase is slow on this export — if it doesn't finish in another minute, the query may need to be reduced in Metabase (it returns too many rows).`;
+      } else {
+        msg = `Loading has taken ${sec}s. Metabase isn't returning the CSV in a reasonable time. The query likely returns too many rows — consider aggregating in Metabase, or click Sync to retry.`;
+      }
+      showInfo(msg);
+    };
+    tick();
+    loadProgressTimer = setInterval(tick, 1000);
+  }
+  function stopLoadProgress() {
+    if (loadProgressTimer) { clearInterval(loadProgressTimer); loadProgressTimer = null; }
+  }
+
+  // Single attempt: hits /api/data once and returns the parsed JSON.
+  async function singleFetch(force) {
+    const fieldsQS = "fields=" + encodeURIComponent(FIELDS.join(","));
+    const url = force
+      ? `/api/data?refresh=1&${fieldsQS}&_t=${Date.now()}`
+      : `/api/data?${fieldsQS}`;
+    // Browser-side abort if a single request hangs absurdly long (shouldn't happen — server bounds at 50s)
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), 65_000);
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      return await res.json();
+    } finally {
+      clearTimeout(t);
+    }
+  }
+
+  // Long-polling loop: keeps calling /api/data until status === "ready" or error.
+  async function fetchData(force = false) {
+    if (isPolling && !force) return; // already polling
+    isPolling = true;
+    pollAbort = false;
+    const totalT0 = Date.now();
+    const hadDataBefore = state.records.length > 0;
+
+    try {
+      setSyncing(true);
+      if (!hadDataBefore) startLoadProgress(totalT0);
+
+      let attempts = 0;
+      while (!pollAbort) {
+        attempts++;
+        let json;
+        try {
+          json = await singleFetch(force && attempts === 1); // only force on the first attempt
+        } catch (netErr) {
+          // Network or browser-side timeout — back off briefly and retry
+          if (pollAbort) break;
+          await sleep(2000);
+          continue;
+        }
+
+        if (!json || json.ok === false) {
+          throw new Error((json && json.error) || "Server returned an error.");
+        }
+
+        if (json.status === "loading") {
+          // Server is still fetching from Metabase. Loop immediately; the server already
+          // long-polled internally for ~50s. A tiny gap avoids tight-looping if something
+          // misbehaves.
+          await sleep(500);
+          continue;
+        }
+
+        if (json.status === "error") {
+          throw new Error(json.error || "Metabase fetch failed.");
+        }
+
+        // status === "ready" — we have data
+        commitData(json, totalT0);
+        return;
+      }
+    } catch (err) {
+      stopLoadProgress();
+      showError("Couldn't load data: " + err.message + " — click Sync to retry.");
+    } finally {
+      isPolling = false;
+      setSyncing(false);
+    }
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  function commitData(json, totalT0) {
+    stopLoadProgress();
+
+    const records = json.records || [];
+    for (const r of records) {
+      const s = r.createdDate;
+      if (s) {
+        const d = new Date(s);
+        r._ts = isNaN(d) ? NaN : d.getTime();
+      } else {
+        r._ts = NaN;
+      }
+    }
+    state.records = records;
+    state.fetchedAt = json.fetchedAt || Date.now();
+
+    $("#lastSync").textContent = state.fetchedAt ? fmtDateTime(state.fetchedAt) : "—";
+    $("#rowCount").textContent = fmt(state.records.length);
+
+    let pillText = "fresh pull";
+    if (json.backgroundRefreshing) pillText = "showing data · refreshing in background";
+    $("#cachePill").textContent = pillText;
+    $("#cachePill").classList.toggle("alert", !!json.backgroundRefreshing);
+
+    // If a background refresh is still running, poll again in 10s to pick up newer data.
+    if (json.backgroundRefreshing) {
+      setTimeout(() => { if (!isPolling) fetchData(false); }, 10000);
+    }
+
+    buildEnterpriseOptions();
+    buildTeamOptions();
+    buildAccountOptions();
+    hideError();
+    applyAndRender();
+    nextRefreshAt = Date.now() + REFRESH_MS;
+  }
+
+  function showError(msg) {
+    const el = $("#errBanner");
+    el.textContent = msg;
+    el.classList.remove("info");
+    el.classList.add("show");
+  }
+  function showInfo(msg) {
+    const el = $("#errBanner");
+    el.textContent = msg;
+    el.classList.add("info", "show");
+  }
+  function hideError() { $("#errBanner").classList.remove("show", "info"); }
+
+  function setSyncing(on) {
+    const btn = $("#syncBtn");
+    btn.disabled = on;
+    btn.classList.toggle("is-syncing", on);
+    $("#syncBtnLabel").textContent = on ? "Syncing…" : "Sync now";
+    $("#timerDot").classList.toggle("syncing", on);
+  }
+
+  // ---------------- Filters: Multi-select ----------------
+  function setupMultiSelect(rootSel, onChange) {
+    const root = document.querySelector(rootSel);
+    const trigger = root.querySelector(".multi-trigger");
+    const search = root.querySelector(".multi-search");
+    const list = root.querySelector(".multi-list");
+    const label = root.querySelector(".multi-label");
+
+    trigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      // close any other open multi
+      document.querySelectorAll(".multi.open").forEach(m => { if (m !== root) m.classList.remove("open"); });
+      root.classList.toggle("open");
+    });
+    document.addEventListener("click", (e) => {
+      if (!root.contains(e.target)) root.classList.remove("open");
+    });
+    search.addEventListener("input", () => {
+      const q = search.value.toLowerCase();
+      list.querySelectorAll(".multi-opt").forEach(opt => {
+        const txt = opt.dataset.value.toLowerCase();
+        opt.style.display = txt.includes(q) ? "" : "none";
+      });
+    });
+    root.querySelectorAll(".multi-actions button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const act = btn.dataset.act;
+        list.querySelectorAll("input[type=checkbox]").forEach(cb => {
+          cb.checked = (act === "all");
+        });
+        onChange(getSelected(root));
+        updateLabel(root, label);
+      });
+    });
+
+    return {
+      render(options, selectedSet) {
+        list.innerHTML = "";
+        options.forEach(({ value, count }) => {
+          const id = "opt_" + Math.random().toString(36).slice(2, 8);
+          const row = document.createElement("label");
+          row.className = "multi-opt";
+          row.dataset.value = value;
+          row.innerHTML = `
+            <input type="checkbox" id="${id}" ${selectedSet.has(value) ? "checked" : ""} />
+            <span>${escapeHtml(value || "(empty)")}</span>
+            <span class="count">${fmt(count)}</span>`;
+          row.querySelector("input").addEventListener("change", () => {
+            onChange(getSelected(root));
+            updateLabel(root, label);
+          });
+          list.appendChild(row);
+        });
+        updateLabel(root, label);
+      }
+    };
+  }
+
+  function getSelected(root) {
+    const set = new Set();
+    root.querySelectorAll("input[type=checkbox]:checked").forEach(cb => {
+      set.add(cb.parentElement.dataset.value);
+    });
+    return set;
+  }
+
+  function updateLabel(root, label) {
+    const checked = root.querySelectorAll("input[type=checkbox]:checked").length;
+    const total = root.querySelectorAll("input[type=checkbox]").length;
+    if (checked === 0 || checked === total) {
+      label.textContent = root.id === "msEnterprise" ? "All enterprises" : "All account types";
+    } else if (checked === 1) {
+      const v = [...getSelected(root)][0];
+      label.textContent = v || "(empty)";
+    } else {
+      label.textContent = `${checked} selected`;
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  }
+
+  // Build option lists from current records
+  let entMulti, teamMulti, acctMulti;
+
+  function buildEnterpriseOptions() {
+    const counts = new Map();
+    for (const r of state.records) {
+      const v = (r.enterprise_name || "").trim();
+      counts.set(v, (counts.get(v) || 0) + 1);
+    }
+    const opts = [...counts.entries()]
+      .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([value, count]) => ({ value, count }));
+    entMulti.render(opts, state.filters.enterprises);
+  }
+
+  function buildAccountOptions() {
+    const counts = new Map();
+    for (const r of state.records) {
+      const v = (r.account_type || "").trim();
+      counts.set(v, (counts.get(v) || 0) + 1);
+    }
+    const opts = [...counts.entries()]
+      .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([value, count]) => ({ value, count }));
+    acctMulti.render(opts, state.filters.accounts);
+  }
+
+  function buildTeamOptions() {
+    const counts = new Map();
+    for (const r of state.records) {
+      const v = (r.team_name || "").trim();
+      counts.set(v, (counts.get(v) || 0) + 1);
+    }
+    const opts = [...counts.entries()]
+      .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([value, count]) => ({ value, count }));
+    teamMulti.render(opts, state.filters.teams);
+  }
+
+  // ---------------- Filtering + KPIs ----------------
+  function applyAndRender() {
+    const f = state.filters;
+    const [from, to] = rangeForPreset(f.datePreset, f.from, f.to);
+    const fromTs = from ? from.getTime() : null;
+    const toTs   = to   ? to.getTime()   : null;
+
+    const filtered = state.records.filter(r => {
+      // Date filter on createdDate (pre-parsed timestamp)
+      if (fromTs !== null || toTs !== null) {
+        const ts = r._ts;
+        if (!ts || isNaN(ts)) return false;
+        if (fromTs !== null && ts < fromTs) return false;
+        if (toTs   !== null && ts > toTs)   return false;
+      }
+      // Enterprise
+      if (f.enterprises.size > 0) {
+        if (!f.enterprises.has((r.enterprise_name || "").trim())) return false;
+      }
+      // Team
+      if (f.teams.size > 0) {
+        if (!f.teams.has((r.team_name || "").trim())) return false;
+      }
+      // Account type
+      if (f.accounts.size > 0) {
+        if (!f.accounts.has((r.account_type || "").trim())) return false;
+      }
+      return true;
+    });
+
+    // ---- KPI computation on AGGREGATED rows ----
+    // Each row is one (date, enterprise, team, account_type) bucket containing:
+    //   unique_images : count of image_ids in this bucket (safe to sum)
+    //   unique_sku_count : count of sku_ids in this bucket (safe to sum, already distinct in Metabase)
+    //   edited_images : count of edited image_ids in this bucket (safe to sum)
+
+    let totalImages = 0;
+    let totalEdited = 0;
+    let totalSkus = 0;
+    const uniqEnt = new Set();
+    const uniqTeam = new Set();
+
+    for (const r of filtered) {
+      const ent = (r.enterprise_name || "").trim();
+      if (ent) uniqEnt.add(ent);
+
+      const team = (r.team_name || "").trim();
+      if (team) uniqTeam.add(team);
+
+      totalImages += toInt(r.unique_images);
+      totalEdited += toInt(r.edited_images);
+      totalSkus += toInt(r.unique_sku_count);
+    }
+
+    setKpi("kEnt",  uniqEnt.size,  `across ${fmt(filtered.length)} buckets`);
+    setKpi("kTeam", uniqTeam.size, `across ${fmt(filtered.length)} buckets`);
+    setKpi("kImg",  totalImages,   `from aggregated data`);
+    setKpi("kSku",  totalSkus,     `from aggregated data`);
+    const editPct = totalImages > 0 ? ((totalEdited / totalImages) * 100).toFixed(1) : "0.0";
+    const aiAccuracy = totalImages > 0 ? (100 - parseFloat(editPct)).toFixed(1) : "100.0";
+    setKpi("kEdit", parseFloat(aiAccuracy), `${aiAccuracy}% images need no edits`);
+
+    // Stash filtered set so detail panel can reuse without recomputing the filter pass.
+    state._filteredCache = filtered;
+
+    // Meta line
+    const totalBuckets = state.records.length;
+    $("#filteredPill").textContent = filtered.length === totalBuckets
+      ? `Showing all ${fmt(totalBuckets)} buckets`
+      : `Showing ${fmt(filtered.length)} of ${fmt(totalBuckets)} buckets`;
+
+    // Re-render the detail panel if a card is selected
+    renderDetail();
+
+    // Re-render trend charts
+    renderTrends();
+
+    // Re-render rejected comments analysis
+    renderRejected();
+  }
+
+  function toInt(v) {
+    if (v === null || v === undefined || v === "") return 0;
+    const n = typeof v === "number" ? v : parseInt(v, 10);
+    return isNaN(n) ? 0 : n;
+  }
+
+  // Metabase emits arrays as either JSON strings ("['a','b']") or already-parsed arrays
+  // depending on the export format. Handle both.
+  function parseSkuArray(v) {
+    if (Array.isArray(v)) return v;
+    if (typeof v !== "string") return [];
+    const s = v.trim();
+    if (!s) return [];
+    // Try JSON first
+    try {
+      const parsed = JSON.parse(s);
+      if (Array.isArray(parsed)) return parsed.map(String);
+    } catch (_) { /* fall through */ }
+    // ClickHouse array literal: ['a','b','c']
+    if (s.startsWith("[") && s.endsWith("]")) {
+      const inner = s.slice(1, -1);
+      if (!inner.trim()) return [];
+      // Split on commas not inside quotes — simple state machine
+      const out = [];
+      let cur = "", inQ = false, qch = "";
+      for (let i = 0; i < inner.length; i++) {
+        const c = inner[i];
+        if (inQ) {
+          if (c === "\\" && i + 1 < inner.length) { cur += inner[i + 1]; i++; continue; }
+          if (c === qch) { inQ = false; continue; }
+          cur += c;
+        } else {
+          if (c === "'" || c === '"') { inQ = true; qch = c; continue; }
+          if (c === ",") { out.push(cur.trim()); cur = ""; continue; }
+          cur += c;
+        }
+      }
+      if (cur.trim() || out.length) out.push(cur.trim());
+      return out.filter(Boolean);
+    }
+    return [];
+  }
+
+  function setKpi(id, value, sub) {
+    const el = $("#" + id);
+    el.textContent = fmt(value);
+    el.parentElement.classList.remove("loading");
+    $("#" + id + "Sub").textContent = sub;
+    // animate bar
+    const bar = el.parentElement.querySelector(".kpi-bar");
+    bar.style.width = "0%";
+    requestAnimationFrame(() => { bar.style.width = "100%"; });
+  }
+
+  // ---------------- Countdown ----------------
+  function tickCountdown() {
+    if (nextRefreshAt === null) {
+      $("#countdown").textContent = "—:—";
+      return;
+    }
+    const ms = Math.max(0, nextRefreshAt - Date.now());
+    const totalSec = Math.floor(ms / 1000);
+    const mm = String(Math.floor(totalSec / 60)).padStart(2, "0");
+    const ss = String(totalSec % 60).padStart(2, "0");
+    $("#countdown").textContent = `${mm}:${ss}`;
+    if (ms <= 0) {
+      nextRefreshAt = Date.now() + REFRESH_MS;
+      fetchData(false);
+    }
+  }
+
+  // ---------------- Detail panel (drill-down) ----------------
+
+  // Configuration per card: title, eyebrow, columns, how to build per-enterprise rows,
+  // and which key to default-sort by.
+  const DETAIL_CONFIGS = {
+    enterprises: {
+      eyebrow: "Enterprise breakdown",
+      heading: "All enterprises in current view",
+      defaultSort: "images",
+      columns: [
+        { key: "enterprise", label: "Enterprise", type: "text" },
+        { key: "account",    label: "Account type", type: "pill" },
+        { key: "images",     label: "Unique images", type: "num" },
+        { key: "skus",       label: "Unique SKUs",   type: "num" },
+        { key: "edited",     label: "Edited images", type: "num" },
+        { key: "editPct",    label: "Edit %",        type: "pct" },
+      ],
+    },
+    teams: {
+      eyebrow: "Team breakdown",
+      heading: "All teams in current view",
+      defaultSort: "images",
+      columns: [
+        { key: "team",       label: "Team", type: "text" },
+        { key: "account",    label: "Account type", type: "pill" },
+        { key: "images",     label: "Unique images", type: "num" },
+        { key: "skus",       label: "Unique SKUs",   type: "num" },
+        { key: "edited",     label: "Edited images", type: "num" },
+        { key: "editPct",    label: "Edit %",        type: "pct" },
+      ],
+    },
+    images: {
+      eyebrow: "Image volume by enterprise",
+      heading: "Where images come from",
+      defaultSort: "images",
+      barKey: "images",
+      columns: [
+        { key: "enterprise", label: "Enterprise",     type: "text" },
+        { key: "account",    label: "Account type",   type: "pill" },
+        { key: "images",     label: "Unique images",  type: "num", bar: true },
+        { key: "sharePct",   label: "Share of total", type: "pct" },
+      ],
+    },
+    skus: {
+      eyebrow: "SKU coverage by enterprise",
+      heading: "Where SKUs come from",
+      defaultSort: "skus",
+      barKey: "skus",
+      columns: [
+        { key: "enterprise", label: "Enterprise",     type: "text" },
+        { key: "account",    label: "Account type",   type: "pill" },
+        { key: "skus",       label: "Unique SKUs",    type: "num", bar: true },
+        { key: "sharePct",   label: "Share of total", type: "pct" },
+      ],
+    },
+    edited: {
+      eyebrow: "Edited images by enterprise",
+      heading: "Who needs editing the most",
+      defaultSort: "edited",
+      barKey: "edited",
+      columns: [
+        { key: "enterprise", label: "Enterprise",     type: "text" },
+        { key: "account",    label: "Account type",   type: "pill" },
+        { key: "edited",     label: "Edited",         type: "num", bar: true },
+        { key: "images",     label: "Total images",   type: "num" },
+        { key: "editPct",    label: "Edit %",         type: "pct" },
+      ],
+    },
+  };
+
+  function selectCard(card) {
+    if (state.detail.card === card) {
+      // Toggle off
+      state.detail.card = null;
+      state.detail.sortKey = null;
+    } else {
+      state.detail.card = card;
+      state.detail.sortKey = DETAIL_CONFIGS[card].defaultSort;
+      state.detail.sortDir = "desc";
+      state.detail.search = "";
+      const searchInput = $("#detailSearch");
+      if (searchInput) searchInput.value = "";
+    }
+    // Update card aria-pressed + selected class
+    document.querySelectorAll(".kpi[data-card]").forEach(btn => {
+      const isSel = btn.dataset.card === state.detail.card;
+      btn.classList.toggle("is-selected", isSel);
+      btn.setAttribute("aria-pressed", isSel ? "true" : "false");
+    });
+    renderDetail();
+  }
+
+  // Build per-enterprise rows from the currently filtered buckets.
+  // Same enterprise may appear in multiple buckets (different dates / account types);
+  // we collapse to one row per (enterprise_name, account_type). If you want one row
+  // per enterprise (regardless of account type), drop account_type from the key.
+  function buildEnterpriseRows(filtered) {
+    const acc = new Map(); // key -> aggregate
+    for (const r of filtered) {
+      const ent = (r.enterprise_name || "").trim() || "(empty)";
+      const account = (r.account_type || "").trim() || "(empty)";
+      const key = ent + "||" + account;
+      let row = acc.get(key);
+      if (!row) {
+        row = {
+          enterprise: ent,
+          account,
+          images: 0,
+          edited: 0,
+          rawRows: 0,
+          skuSet: new Set(),
+        };
+        acc.set(key, row);
+      }
+      row.images   += toInt(r.unique_images);
+      row.edited   += toInt(r.edited_images);
+      row.rawRows  += toInt(r.total_rows);
+      for (const s of parseSkuArray(r.sku_ids)) if (s) row.skuSet.add(s);
+    }
+    const rows = [];
+    for (const r of acc.values()) {
+      rows.push({
+        enterprise: r.enterprise,
+        account: r.account,
+        images: r.images,
+        edited: r.edited,
+        skus: r.skuSet.size,
+        editPct: r.images > 0 ? (r.edited / r.images) * 100 : 0,
+      });
+    }
+    return rows;
+  }
+
+  // Build per-team rows from the currently filtered buckets.
+  function buildTeamRows(filtered) {
+    const acc = new Map(); // key -> aggregate
+    for (const r of filtered) {
+      const team = (r.team_name || "").trim() || "(empty)";
+      const account = (r.account_type || "").trim() || "(empty)";
+      const key = team + "||" + account;
+      let row = acc.get(key);
+      if (!row) {
+        row = {
+          team,
+          account,
+          images: 0,
+          edited: 0,
+          skus: 0,
+        };
+        acc.set(key, row);
+      }
+      row.images += toInt(r.unique_images);
+      row.edited += toInt(r.edited_images);
+      row.skus   += toInt(r.unique_sku_count);
+    }
+    const rows = [];
+    for (const r of acc.values()) {
+      rows.push({
+        team: r.team,
+        account: r.account,
+        images: r.images,
+        edited: r.edited,
+        skus: r.skus,
+        editPct: r.images > 0 ? (r.edited / r.images) * 100 : 0,
+      });
+    }
+    return rows;
+  }
+
+  function renderDetail() {
+    const panel = $("#detailPanel");
+    if (!state.detail.card) {
+      panel.hidden = true;
+      return;
+    }
+    const cfg = DETAIL_CONFIGS[state.detail.card];
+    panel.hidden = false;
+    $("#detailEyebrow").textContent = cfg.eyebrow;
+    $("#detailHeading").textContent = cfg.heading;
+
+    const filtered = state._filteredCache || [];
+    let rows;
+    if (state.detail.card === "teams") {
+      rows = buildTeamRows(filtered);
+    } else {
+      rows = buildEnterpriseRows(filtered);
+    }
+
+    // Compute share-of-total for cards that need it (images, skus)
+    if (state.detail.card === "images") {
+      const total = rows.reduce((s, r) => s + r.images, 0);
+      for (const r of rows) r.sharePct = total > 0 ? (r.images / total) * 100 : 0;
+    } else if (state.detail.card === "skus") {
+      // For SKUs, share is approximate (same SKU can appear under multiple enterprises)
+      const total = rows.reduce((s, r) => s + r.skus, 0);
+      for (const r of rows) r.sharePct = total > 0 ? (r.skus / total) * 100 : 0;
+    }
+
+    // Apply search
+    const q = state.detail.search.trim().toLowerCase();
+    if (q) rows = rows.filter(r => r.enterprise.toLowerCase().includes(q));
+
+    // Apply sort
+    const sortKey = state.detail.sortKey || cfg.defaultSort;
+    const dir = state.detail.sortDir === "asc" ? 1 : -1;
+    rows.sort((a, b) => {
+      const av = a[sortKey], bv = b[sortKey];
+      if (typeof av === "string" && typeof bv === "string") {
+        return av.localeCompare(bv) * dir;
+      }
+      return ((av || 0) - (bv || 0)) * dir;
+    });
+
+    // Compute totals across visible rows
+    const totals = rows.reduce((t, r) => {
+      t.images += r.images || 0;
+      t.skus   += r.skus   || 0;
+      t.edited += r.edited || 0;
+      return t;
+    }, { images: 0, skus: 0, edited: 0 });
+    const totalEditPct = totals.images > 0 ? (totals.edited / totals.images) * 100 : 0;
+
+    // Find max for bar scaling
+    const barKey = cfg.barKey;
+    const maxVal = barKey ? Math.max(0, ...rows.map(r => r[barKey] || 0)) : 0;
+
+    // Render thead
+    const thead = panel.querySelector("thead");
+    thead.innerHTML = "<tr>" + cfg.columns.map(c => {
+      const isNumeric = c.type === "num" || c.type === "pct";
+      const arrow = sortKey === c.key
+        ? `<span class="sort-ind">${state.detail.sortDir === "asc" ? "▲" : "▼"}</span>`
+        : "";
+      return `<th class="${isNumeric ? "num" : ""}" data-key="${c.key}">${escapeHtml(c.label)}${arrow}</th>`;
+    }).join("") + "</tr>";
+
+    // Render tbody
+    const tbody = panel.querySelector("tbody");
+    const cellHTML = (r, c) => {
+      const v = r[c.key];
+      if (c.type === "text") return `<td>${escapeHtml(v || "")}</td>`;
+      if (c.type === "pill") return `<td><span class="acct-pill">${escapeHtml(v || "—")}</span></td>`;
+      if (c.type === "pct")  return `<td class="num">${(v || 0).toFixed(1)}%</td>`;
+      if (c.type === "num") {
+        if (c.bar && maxVal > 0) {
+          const w = Math.max(4, Math.round((v / maxVal) * 80));
+          return `<td class="num"><span class="bar" style="width:${w}px"></span>${fmt(v || 0)}</td>`;
+        }
+        return `<td class="num">${fmt(v || 0)}</td>`;
+      }
+      return `<td>${escapeHtml(String(v ?? ""))}</td>`;
+    };
+
+    let html = rows.map(r => "<tr>" + cfg.columns.map(c => cellHTML(r, c)).join("") + "</tr>").join("");
+    if (rows.length === 0) {
+      html = `<tr><td colspan="${cfg.columns.length}" class="muted" style="padding:32px 18px;text-align:center;">No matching enterprises.</td></tr>`;
+    } else {
+      // Totals row
+      const totalCells = cfg.columns.map(c => {
+        if (c.key === "enterprise") return `<td><strong>Total · ${fmt(rows.length)} enterprises</strong></td>`;
+        if (c.key === "account")    return `<td class="muted">—</td>`;
+        if (c.key === "images")     return `<td class="num">${fmt(totals.images)}</td>`;
+        if (c.key === "skus")       return `<td class="num">${fmt(totals.skus)}</td>`;
+        if (c.key === "edited")     return `<td class="num">${fmt(totals.edited)}</td>`;
+        if (c.key === "editPct")    return `<td class="num">${totalEditPct.toFixed(1)}%</td>`;
+        if (c.key === "sharePct")   return `<td class="num">100.0%</td>`;
+        return `<td></td>`;
+      }).join("");
+      html += `<tr class="total-row">${totalCells}</tr>`;
+    }
+    tbody.innerHTML = html;
+
+    // Wire sortable header clicks (re-bind each render)
+    thead.querySelectorAll("th").forEach(th => {
+      th.addEventListener("click", () => {
+        const k = th.dataset.key;
+        if (state.detail.sortKey === k) {
+          state.detail.sortDir = state.detail.sortDir === "asc" ? "desc" : "asc";
+        } else {
+          state.detail.sortKey = k;
+          state.detail.sortDir = "desc";
+        }
+        renderDetail();
+      });
+    });
+
+    // Footer
+    $("#detailFoot").innerHTML = `
+      <span>${fmt(rows.length)} ${rows.length === 1 ? "enterprise" : "enterprises"}${q ? ` matching "${escapeHtml(q)}"` : ""}</span>
+      <span>click column to sort</span>`;
+  }
+
+  // ---------------- Trend lines ----------------
+
+  function buildTrendData(filtered) {
+    // Group by createdDate, compute per-date metrics from aggregated data
+    const byDate = new Map();
+    for (const r of filtered) {
+      const d = (r.createdDate || "").trim();
+      if (!d) continue;
+      let bucket = byDate.get(d);
+      if (!bucket) {
+        bucket = {
+          date: d,
+          images: 0,
+          edited: 0,
+          byAccount: new Map(), // account_type -> { images, edited }
+        };
+        byDate.set(d, bucket);
+      }
+      
+      // Sum the aggregated counts
+      bucket.images += toInt(r.unique_images);
+      bucket.edited += toInt(r.edited_images);
+
+      const acct = (r.account_type || "").trim() || "—";
+      let ab = bucket.byAccount.get(acct);
+      if (!ab) {
+        ab = { images: 0, edited: 0 };
+        bucket.byAccount.set(acct, ab);
+      }
+      ab.images += toInt(r.unique_images);
+      ab.edited += toInt(r.edited_images);
+    }
+
+    // Sort by date
+    const dates = [...byDate.keys()].sort();
+    const trends = dates.map(d => byDate.get(d));
+
+    return trends;
+  }
+
+  function drawLineChart(canvasId, trends, config) {
+    const canvas = $(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    
+    // Get container dimensions
+    const container = canvas.parentElement;
+    const w = Math.max(container.offsetWidth - 16, 300);
+    const h = 280;
+    
+    canvas.width = w;
+    canvas.height = h;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, w, h);
+
+    if (trends.length === 0) {
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--ink-faint");
+      ctx.font = "14px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("No data for selected filters", w / 2, h / 2);
+      return;
+    }
+
+    const padding = { left: 60, right: 30, top: 20, bottom: 60 };
+    const plotW = w - padding.left - padding.right;
+    const plotH = h - padding.top - padding.bottom;
+
+    if (plotW < 50 || plotH < 50) return; // Not enough space
+
+    // Compute scales — handle all three lines
+    const allValues = [];
+    config.lines.forEach(line => {
+      trends.forEach(t => {
+        const v = line.getValue(t);
+        if (typeof v === "number" && isFinite(v)) allValues.push(v);
+      });
+    });
+    const maxVal = allValues.length > 0 ? Math.max(...allValues) : 100;
+    const minVal = 0;
+    const valRange = Math.max(maxVal - minVal, 1);
+    const xScale = plotW / Math.max(trends.length - 1, 1);
+    const yScale = plotH / valRange;
+
+    // Get CSS colors
+    const ruleColor = getComputedStyle(document.documentElement).getPropertyValue("--rule").trim();
+    const faintColor = getComputedStyle(document.documentElement).getPropertyValue("--ink-faint").trim();
+    const softColor = getComputedStyle(document.documentElement).getPropertyValue("--ink-soft").trim();
+
+    // Draw background grid
+    ctx.strokeStyle = ruleColor;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 2]);
+    for (let i = 0; i <= 5; i++) {
+      const y = padding.top + (plotH * i / 5);
+      ctx.beginPath();
+      ctx.moveTo(padding.left, y);
+      ctx.lineTo(w - padding.right, y);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    // Draw axes
+    ctx.strokeStyle = faintColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(padding.left, padding.top);
+    ctx.lineTo(padding.left, h - padding.bottom);
+    ctx.lineTo(w - padding.right, h - padding.bottom);
+    ctx.stroke();
+
+    // Draw lines
+    config.lines.forEach(line => {
+      ctx.strokeStyle = line.color;
+      ctx.lineWidth = line.width || 2.5;
+      ctx.setLineDash(line.dash || []);
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+
+      ctx.beginPath();
+      let first = true;
+      let pointCount = 0;
+
+      trends.forEach((t, i) => {
+        const v = line.getValue(t);
+        if (typeof v !== "number" || !isFinite(v)) return;
+
+        const x = padding.left + i * xScale;
+        const y = h - padding.bottom - ((v - minVal) * yScale);
+
+        if (first) {
+          ctx.moveTo(x, y);
+          first = false;
+        } else {
+          ctx.lineTo(x, y);
+        }
+        pointCount++;
+      });
+
+      if (pointCount > 0) {
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    });
+
+    // Draw X-axis date labels
+    ctx.fillStyle = softColor;
+    ctx.font = "11px 'JetBrains Mono', monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    const step = Math.max(1, Math.floor(trends.length / 6));
+    trends.forEach((t, i) => {
+      if (i % step !== 0 && i !== trends.length - 1) return;
+      const x = padding.left + i * xScale;
+      const dateStr = t.date.substring(5); // MM-DD
+      ctx.fillText(dateStr, x, h - padding.bottom + 8);
+    });
+
+    // Draw Y-axis labels
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = faintColor;
+    for (let i = 0; i <= 5; i++) {
+      const y = padding.top + (plotH * (5 - i) / 5);
+      const val = Math.round(minVal + valRange * i / 5);
+      ctx.fillText(fmt(val), padding.left - 10, y);
+    }
+  }
+
+  function drawStackedAreaChart(canvasId, trends, acctColors) {
+    const canvas = $(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    
+    // Get container dimensions
+    const container = canvas.parentElement;
+    const w = Math.max(container.offsetWidth - 16, 300);
+    const h = 280;
+    
+    canvas.width = w;
+    canvas.height = h;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, w, h);
+
+    if (trends.length === 0) {
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--ink-faint");
+      ctx.font = "14px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("No data for selected filters", w / 2, h / 2);
+      return;
+    }
+
+    const padding = { left: 60, right: 30, top: 20, bottom: 60 };
+    const plotW = w - padding.left - padding.right;
+    const plotH = h - padding.top - padding.bottom;
+
+    if (plotW < 50 || plotH < 50) return; // Not enough space
+
+    // Get CSS colors
+    const ruleColor = getComputedStyle(document.documentElement).getPropertyValue("--rule").trim();
+    const faintColor = getComputedStyle(document.documentElement).getPropertyValue("--ink-faint").trim();
+    const softColor = getComputedStyle(document.documentElement).getPropertyValue("--ink-soft").trim();
+
+    // Compute stacked values per date
+    const allAccts = new Set();
+    trends.forEach(t => {
+      t.byAccount.forEach((_, acct) => allAccts.add(acct));
+    });
+    const acctList = [...allAccts].sort();
+
+    // Build stacked data
+    const stackedData = trends.map(t => {
+      const vals = {};
+      let cumul = 0;
+      for (const acct of acctList) {
+        const ab = t.byAccount.get(acct) || { images: 0, edited: 0 };
+        const v = ab.images;
+        vals[acct] = { value: v, cumul: cumul, cumlNext: cumul + v };
+        cumul += v;
+      }
+      vals._total = cumul;
+      return vals;
+    });
+
+    const maxTotal = Math.max(...stackedData.map(d => d._total), 1);
+    const xScale = plotW / Math.max(trends.length - 1, 1);
+    const yScale = plotH / maxTotal;
+
+    // Draw grid
+    ctx.strokeStyle = ruleColor;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 2]);
+    for (let i = 0; i <= 5; i++) {
+      const y = padding.top + (plotH * i / 5);
+      ctx.beginPath();
+      ctx.moveTo(padding.left, y);
+      ctx.lineTo(w - padding.right, y);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    // Draw axes
+    ctx.strokeStyle = faintColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(padding.left, padding.top);
+    ctx.lineTo(padding.left, h - padding.bottom);
+    ctx.lineTo(w - padding.right, h - padding.bottom);
+    ctx.stroke();
+
+    // Draw stacked areas
+    for (let ai = acctList.length - 1; ai >= 0; ai--) {
+      const acct = acctList[ai];
+      const color = acctColors[acct] || "#999";
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.7;
+      ctx.beginPath();
+      let first = true;
+      stackedData.forEach((stacked, i) => {
+        const x = padding.left + i * xScale;
+        const top = stacked[acct];
+        const y = h - padding.bottom - (top.cumlNext * yScale);
+        if (first) {
+          ctx.moveTo(x, y);
+          first = false;
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      // Trace back along the bottom
+      for (let i = stackedData.length - 1; i >= 0; i--) {
+        const stacked = stackedData[i];
+        const x = padding.left + i * xScale;
+        const top = stacked[acct];
+        const y = h - padding.bottom - (top.cumul * yScale);
+        ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // Draw date labels
+    ctx.fillStyle = softColor;
+    ctx.font = "11px 'JetBrains Mono', monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    const step = Math.max(1, Math.floor(trends.length / 6));
+    trends.forEach((t, i) => {
+      if (i % step !== 0 && i !== trends.length - 1) return;
+      const x = padding.left + i * xScale;
+      const dateStr = t.date.substring(5);
+      ctx.fillText(dateStr, x, h - padding.bottom + 8);
+    });
+
+    // Y-axis labels
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = faintColor;
+    for (let i = 0; i <= 5; i++) {
+      const y = padding.top + (plotH * (5 - i) / 5);
+      const val = Math.round(maxTotal * i / 5);
+      ctx.fillText(fmt(val), padding.left - 10, y);
+    }
+  }
+
+  function renderTrends() {
+    const filtered = state._filteredCache || [];
+    if (filtered.length === 0) {
+      $("#trendsSection").hidden = true;
+      return;
+    }
+
+    const trends = buildTrendData(filtered);
+    if (trends.length === 0) {
+      $("#trendsSection").hidden = true;
+      return;
+    }
+
+    $("#trendsSection").hidden = false;
+
+    // Use requestAnimationFrame to ensure canvas elements are laid out with proper dimensions
+    requestAnimationFrame(() => {
+      // Chart 1: Images, edits, AI accuracy over time
+      drawLineChart("trendCanvas1", trends, {
+        lines: [
+          {
+            getValue: (t) => t.images,
+            color: "#ff4d1f",
+            width: 2.5,
+          },
+          {
+            getValue: (t) => t.edited,
+            color: "#a35400",
+            width: 2.5,
+          },
+          {
+            getValue: (t) => t.images > 0 ? 100 - ((t.edited / t.images) * 100) : 100,
+            color: "#8a8475",
+            width: 1.5,
+          },
+        ],
+      });
+
+      // Chart 2: Account type breakdown
+      const acctColors = {
+        "GROUP_DEALER": "#2a4a7f",
+        "INDIVIDUAL_DEALER": "#1f7a4d",
+        "PARTNER": "#ff4d1f",
+        "—": "#999",
+      };
+
+      drawStackedAreaChart("trendCanvas2", trends, acctColors);
+
+      // Build legend for account types
+      const allAccts = new Set();
+      trends.forEach(t => {
+        t.byAccount.forEach((_, acct) => allAccts.add(acct));
+      });
+      const acctList = [...allAccts].sort();
+      const legendHTML = acctList.map(acct => {
+        const color = acctColors[acct] || "#999";
+        return `<span class="legend-item" style="border-left: 3px solid ${color};"><strong>${escapeHtml(acct)}</strong></span>`;
+      }).join("");
+      $("#acctLegend").innerHTML = legendHTML;
+
+      // Chart 3: Rejected comments trend (top 5)
+      const rejectedTrendData = buildRejectedCommentsTrend(filtered);
+      if (rejectedTrendData.trends.length > 0 && rejectedTrendData.topComments.length > 0) {
+        drawRejectedCommentsChart("trendCanvas3", rejectedTrendData);
+      }
+    });
+  }
+
+  // Draw rejected comments trend line chart
+  function drawRejectedCommentsChart(canvasId, trendData) {
+    const canvas = $(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    
+    const trends = trendData.trends;
+    const topComments = trendData.topComments;
+
+    // Get container dimensions
+    const container = canvas.parentElement;
+    const w = Math.max(container.offsetWidth - 16, 300);
+    const h = 280;
+    
+    canvas.width = w;
+    canvas.height = h;
+    ctx.clearRect(0, 0, w, h);
+
+    if (trends.length === 0 || topComments.length === 0) {
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--ink-faint");
+      ctx.font = "14px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("No rejection data for selected filters", w / 2, h / 2);
+      return;
+    }
+
+    const padding = { left: 60, right: 30, top: 20, bottom: 60 };
+    const plotW = w - padding.left - padding.right;
+    const plotH = h - padding.top - padding.bottom;
+
+    if (plotW < 50 || plotH < 50) return;
+
+    // Compute scales
+    const allValues = [];
+    topComments.forEach(comment => {
+      trends.forEach(t => {
+        const v = t.byComment.get(comment) || 0;
+        if (typeof v === "number" && isFinite(v)) allValues.push(v);
+      });
+    });
+    const maxVal = allValues.length > 0 ? Math.max(...allValues) : 100;
+    const minVal = 0;
+    const valRange = Math.max(maxVal - minVal, 1);
+    const xScale = plotW / Math.max(trends.length - 1, 1);
+    const yScale = plotH / valRange;
+
+    // Get CSS colors
+    const ruleColor = getComputedStyle(document.documentElement).getPropertyValue("--rule").trim();
+    const faintColor = getComputedStyle(document.documentElement).getPropertyValue("--ink-faint").trim();
+    const softColor = getComputedStyle(document.documentElement).getPropertyValue("--ink-soft").trim();
+
+    // Draw background grid
+    ctx.strokeStyle = ruleColor;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 2]);
+    for (let i = 0; i <= 5; i++) {
+      const y = padding.top + (plotH * i / 5);
+      ctx.beginPath();
+      ctx.moveTo(padding.left, y);
+      ctx.lineTo(w - padding.right, y);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    // Draw axes
+    ctx.strokeStyle = faintColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(padding.left, padding.top);
+    ctx.lineTo(padding.left, h - padding.bottom);
+    ctx.lineTo(w - padding.right, h - padding.bottom);
+    ctx.stroke();
+
+    // Define colors for top 5 comments
+    const commentColors = ["#ff4d1f", "#2a4a7f", "#1f7a4d", "#a35400", "#7c3aed"];
+
+    // Draw lines for each comment
+    topComments.forEach((comment, idx) => {
+      ctx.strokeStyle = commentColors[idx % commentColors.length];
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+
+      ctx.beginPath();
+      let first = true;
+      let pointCount = 0;
+
+      trends.forEach((t, i) => {
+        const v = t.byComment.get(comment) || 0;
+        if (typeof v !== "number" || !isFinite(v)) return;
+
+        const x = padding.left + i * xScale;
+        const y = h - padding.bottom - ((v - minVal) * yScale);
+
+        if (first) {
+          ctx.moveTo(x, y);
+          first = false;
+        } else {
+          ctx.lineTo(x, y);
+        }
+        pointCount++;
+      });
+
+      if (pointCount > 0) {
+        ctx.stroke();
+      }
+    });
+
+    // Draw X-axis date labels
+    ctx.fillStyle = softColor;
+    ctx.font = "11px 'JetBrains Mono', monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    const step = Math.max(1, Math.floor(trends.length / 6));
+    trends.forEach((t, i) => {
+      if (i % step !== 0 && i !== trends.length - 1) return;
+      const x = padding.left + i * xScale;
+      const dateStr = t.date.substring(5);
+      ctx.fillText(dateStr, x, h - padding.bottom + 8);
+    });
+
+    // Draw Y-axis labels
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = faintColor;
+    for (let i = 0; i <= 5; i++) {
+      const y = padding.top + (plotH * (5 - i) / 5);
+      const val = Math.round(minVal + valRange * i / 5);
+      ctx.fillText(fmt(val), padding.left - 10, y);
+    }
+
+    // Build and display legend for top comments
+    const legendHTML = topComments.map((comment, idx) => {
+      const color = commentColors[idx % commentColors.length];
+      const displayText = comment.length > 30 ? comment.substring(0, 27) + "..." : comment;
+      return `<span class="legend-item" style="border-left: 3px solid ${color};"><strong>${escapeHtml(displayText)}</strong></span>`;
+    }).join("");
+    $("#rejectedLegend").innerHTML = legendHTML;
+  }
+
+  function buildRejectedCommentsTrend(filtered) {
+    // Parse all comments from filtered records and group by date
+    const byDate = new Map();
+    
+    for (const r of filtered) {
+      const d = (r.createdDate || "").trim();
+      if (!d) continue;
+
+      const arr = r.rejected_comments_array;
+      if (!arr) continue;
+
+      let comments = [];
+      if (typeof arr === 'string') {
+        try {
+          comments = JSON.parse(arr);
+        } catch (_) {
+          const s = arr.trim();
+          if (s.startsWith('[') && s.endsWith(']')) {
+            const inner = s.slice(1, -1);
+            if (inner) {
+              comments = inner.split(',').map(c => c.replace(/^['"]|['"]$/g, '').trim()).filter(Boolean);
+            }
+          }
+        }
+      } else if (Array.isArray(arr)) {
+        comments = arr;
+      }
+
+      if (!byDate.has(d)) {
+        byDate.set(d, {});
+      }
+      const dayMap = byDate.get(d);
+
+      for (const comment of comments) {
+        const c = (comment || "").trim();
+        if (c && c.toLowerCase() !== "null") {
+          dayMap[c] = (dayMap[c] || 0) + 1;
+        }
+      }
+    }
+
+    // Get top 5 comments overall
+    const allComments = new Map();
+    for (const dayMap of byDate.values()) {
+      for (const [comment, count] of Object.entries(dayMap)) {
+        allComments.set(comment, (allComments.get(comment) || 0) + count);
+      }
+    }
+    const topComments = [...allComments.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([c]) => c);
+
+    // Build trend data
+    const dates = [...byDate.keys()].sort();
+    const trends = dates.map(d => {
+      const dayMap = byDate.get(d);
+      const trend = { date: d, byComment: new Map() };
+      for (const comment of topComments) {
+        trend.byComment.set(comment, dayMap[comment] || 0);
+      }
+      return trend;
+    });
+
+    return { trends, topComments };
+  }
+
+  // ---- Rejected comments analysis ----
+  function renderRejected() {
+    const filtered = state.records.filter(r => {
+      // Apply same filters as KPI cards
+      const ts = r._ts;
+      const [fromTs, toTs] = rangeForPreset(state.filters.datePreset, state.filters.from, state.filters.to);
+      if (fromTs !== null || toTs !== null) {
+        if (!ts || isNaN(ts)) return false;
+        if (fromTs !== null && ts < fromTs) return false;
+        if (toTs   !== null && ts > toTs)   return false;
+      }
+      if (state.filters.enterprises.size > 0 && !state.filters.enterprises.has(r.enterprise_name)) return false;
+      if (state.filters.teams.size > 0 && !state.filters.teams.has(r.team_name)) return false;
+      if (state.filters.accounts.size > 0 && !state.filters.accounts.has(r.account_type)) return false;
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      $("#rejectedSection").hidden = true;
+      return;
+    }
+
+    // Parse rejected_comments_array and count occurrences
+    const rejectedMap = new Map(); // comment -> count
+    for (const r of filtered) {
+      const arr = r.rejected_comments_array;
+      if (!arr) continue;
+
+      let comments = [];
+      if (typeof arr === 'string') {
+        // Parse array string like "['comment1','comment2']"
+        try {
+          comments = JSON.parse(arr);
+        } catch (_) {
+          // Try ClickHouse array format
+          const s = arr.trim();
+          if (s.startsWith('[') && s.endsWith(']')) {
+            const inner = s.slice(1, -1);
+            if (inner) {
+              comments = inner.split(',').map(c => c.replace(/^['"]|['"]$/g, '').trim()).filter(Boolean);
+            }
+          }
+        }
+      } else if (Array.isArray(arr)) {
+        comments = arr;
+      }
+
+      for (const comment of comments) {
+        const c = (comment || "").trim();
+        if (c && c.toLowerCase() !== "null") {
+          rejectedMap.set(c, (rejectedMap.get(c) || 0) + 1);
+        }
+      }
+    }
+
+    if (rejectedMap.size === 0) {
+      $("#rejectedSection").hidden = true;
+      return;
+    }
+
+    $("#rejectedSection").hidden = false;
+
+    // Top 15 by count
+    const sorted = [...rejectedMap.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 15);
+
+    // Render list
+    const html = sorted.map(([comment, count]) => `
+      <div class="rejected-item" data-comment="${escapeHtml(comment)}">
+        <div class="rejected-item-left">
+          <div class="rejected-item-text">${escapeHtml(comment)}</div>
+          <div class="rejected-item-count">${count} occurrence${count === 1 ? "" : "s"}</div>
+        </div>
+        <div class="rejected-item-badge">${count}</div>
+      </div>
+    `).join("");
+
+    $("#rejectedList").innerHTML = html;
+
+    // Add click handlers
+    document.querySelectorAll(".rejected-item").forEach(el => {
+      el.addEventListener("click", () => {
+        const comment = el.dataset.comment;
+        showRejectedModal(comment, filtered);
+      });
+    });
+  }
+
+  function showRejectedModal(selectedComment, allFiltered) {
+    // Build drill-down data by enterprise/team
+    const byEnterprise = new Map(); // enterprise -> { team, account, images, edited, count }
+
+    for (const r of allFiltered) {
+      // Check if this record has the selected comment in its array
+      const arr = r.rejected_comments_array;
+      if (!arr) continue;
+
+      let comments = [];
+      if (typeof arr === 'string') {
+        try {
+          comments = JSON.parse(arr);
+        } catch (_) {
+          const s = arr.trim();
+          if (s.startsWith('[') && s.endsWith(']')) {
+            const inner = s.slice(1, -1);
+            if (inner) {
+              comments = inner.split(',').map(c => c.replace(/^['"]|['"]$/g, '').trim()).filter(Boolean);
+            }
+          }
+        }
+      } else if (Array.isArray(arr)) {
+        comments = arr;
+      }
+
+      const hasComment = comments.some(c => (c || "").trim() === selectedComment);
+      if (!hasComment) continue;
+
+      const ent = (r.enterprise_name || "").trim() || "(empty)";
+      const team = (r.team_name || "").trim() || "(empty)";
+      const account = (r.account_type || "").trim() || "—";
+      const key = ent + "||" + team;
+      
+      let bucket = byEnterprise.get(key);
+      if (!bucket) {
+        bucket = { 
+          enterprise: ent,
+          team,
+          account_type: account,
+          images: toInt(r.unique_images),
+          edited: toInt(r.edited_images),
+          count: 1
+        };
+        byEnterprise.set(key, bucket);
+      } else {
+        bucket.images += toInt(r.unique_images);
+        bucket.edited += toInt(r.edited_images);
+        bucket.count++;
+      }
+    }
+
+    // Build rows
+    const rows = [...byEnterprise.values()].sort((a, b) => b.count - a.count);
+
+    // Render modal
+    $("#rejectedModalTitle").textContent = `Rejection: "${selectedComment}"`;
+
+    const thead = document.querySelector(".rejected-modal-table thead");
+    thead.innerHTML = `<tr>
+      <th>Enterprise</th>
+      <th>Team</th>
+      <th>Account Type</th>
+      <th class="num">Images</th>
+      <th class="num">Edited</th>
+      <th class="num">Count</th>
+    </tr>`;
+
+    const tbody = document.querySelector(".rejected-modal-table tbody");
+    const tableHTML = rows.map(r => `<tr>
+      <td>${escapeHtml(r.enterprise)}</td>
+      <td>${escapeHtml(r.team)}</td>
+      <td>${escapeHtml(r.account_type)}</td>
+      <td class="num">${fmt(r.images)}</td>
+      <td class="num">${fmt(r.edited)}</td>
+      <td class="num">${fmt(r.count)}</td>
+    </tr>`).join("");
+
+    tbody.innerHTML = tableHTML || `<tr><td colspan="6" style="text-align: center; padding: 20px; color: var(--ink-faint);">No data</td></tr>`;
+
+    const totalCount = rows.reduce((s, r) => s + r.count, 0);
+    const totalImages = rows.reduce((s, r) => s + r.images, 0);
+    const totalEdited = rows.reduce((s, r) => s + r.edited, 0);
+
+    $("#rejectedModalFoot").innerHTML = `
+      <div style="display: flex; justify-content: space-between;">
+        <span><strong>${fmt(rows.length)}</strong> enterprise/team combos · <strong>${fmt(totalImages)}</strong> images · <strong>${fmt(totalEdited)}</strong> edited</span>
+        <span><strong>${fmt(totalCount)}</strong> occurrences of this comment</span>
+      </div>
+    `;
+
+    $("#rejectedModal").hidden = false;
+  }
+
+  // Modal close
+  function closeRejectedModal() {
+    $("#rejectedModal").hidden = true;
+  }
+
+  // ---------- Init ----------------
+  function init() {
+    // Multi-selects
+    entMulti = setupMultiSelect("#msEnterprise", (sel) => {
+      state.filters.enterprises = sel;
+      applyAndRender();
+    });
+    teamMulti = setupMultiSelect("#msTeam", (sel) => {
+      state.filters.teams = sel;
+      applyAndRender();
+    });
+    acctMulti = setupMultiSelect("#msAccount", (sel) => {
+      state.filters.accounts = sel;
+      applyAndRender();
+    });
+
+    // Date preset
+    $("#datePreset").addEventListener("change", (e) => {
+      const v = e.target.value;
+      state.filters.datePreset = v;
+      const customOn = v === "custom";
+      $("#dateFrom").disabled = !customOn;
+      $("#dateTo").disabled = !customOn;
+      applyAndRender();
+    });
+    $("#dateFrom").addEventListener("change", (e) => {
+      state.filters.from = e.target.value;
+      applyAndRender();
+    });
+    $("#dateTo").addEventListener("change", (e) => {
+      state.filters.to = e.target.value;
+      applyAndRender();
+    });
+
+    // Sync button — forces a fresh fetch from Metabase
+    $("#syncBtn").addEventListener("click", () => fetchData(true));
+
+    // Theme toggle button
+    const themeBtn = $("#themeBtn");
+    const sunIcon = themeBtn.querySelector(".theme-icon-sun");
+    const moonIcon = themeBtn.querySelector(".theme-icon-moon");
+    const htmlEl = document.documentElement;
+    
+    // Check if user has saved preference or use system preference
+    const savedTheme = localStorage.getItem("theme");
+    let isDark = false;
+    
+    if (savedTheme) {
+      isDark = savedTheme === "dark";
+    } else {
+      isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    }
+    
+    function applyTheme(dark) {
+      if (dark) {
+        htmlEl.setAttribute("data-theme", "dark");
+        sunIcon.style.display = "none";
+        moonIcon.style.display = "block";
+        localStorage.setItem("theme", "dark");
+      } else {
+        htmlEl.removeAttribute("data-theme");
+        sunIcon.style.display = "block";
+        moonIcon.style.display = "none";
+        localStorage.setItem("theme", "light");
+      }
+    }
+    
+    // Set initial theme
+    applyTheme(isDark);
+    
+    // Toggle on button click
+    themeBtn.addEventListener("click", () => {
+      const isDarkNow = htmlEl.getAttribute("data-theme") === "dark";
+      applyTheme(!isDarkNow);
+      // Re-render charts with new colors
+      setTimeout(() => renderTrends(), 50);
+    });
+
+    // KPI cards — clickable drill-down
+    document.querySelectorAll(".kpi[data-card]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        // Don't open detail until we have data
+        if (btn.classList.contains("loading")) return;
+        selectCard(btn.dataset.card);
+      });
+    });
+
+    // Detail panel close button
+    $("#detailClose").addEventListener("click", () => selectCard(state.detail.card));
+
+    // Detail panel search
+    $("#detailSearch").addEventListener("input", (e) => {
+      state.detail.search = e.target.value;
+      renderDetail();
+    });
+
+    // Rejected comments modal close button
+    $("#rejectedClose").addEventListener("click", closeRejectedModal);
+
+    // Close modal on backdrop click
+    $("#rejectedModal").addEventListener("click", (e) => {
+      if (e.target.id === "rejectedModal") closeRejectedModal();
+    });
+
+    // Escape closes the detail panel
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && state.detail.card) selectCard(state.detail.card);
+      if (e.key === "Escape" && !$("#rejectedModal").hidden) closeRejectedModal();
+    });
+
+    // Initial pull
+    fetchData(false);
+
+    // Countdown
+    countdownTimer = setInterval(tickCountdown, 1000);
+    tickCountdown();
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>
