@@ -1,0 +1,9 @@
+{
+  "name": "image-operations-dashboard",
+  "version": "1.0.0",
+  "description": "Team level analytics dashboard",
+  "private": true,
+  "engines": {
+    "node": "18.x"
+  }
+}
