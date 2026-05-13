@@ -18,14 +18,14 @@
 // We try JSON first; if that fails for any reason we fall back to CSV.
 const METABASE_BASE =
   "https://metabase.spyne.ai/public/question/a594963c-2ba3-4348-b305-cbf98d64fa45";
-const METABASE_JSON_URL = METABASE_BASE + ".json";
-const METABASE_CSV_URL  = METABASE_BASE + ".csv";
+const METABASE_JSON_URL = METABASE_BASE + ".json?limit=10000";
+const METABASE_CSV_URL  = METABASE_BASE + ".csv?limit=10000";
 
 module.exports.config = { maxDuration: 60 };
 
 const TTL_MS                 = 60 * 60 * 1000;
 const PER_REQUEST_WAIT_MS    = 50_000;
-const FETCH_HARD_TIMEOUT_MS  = 600_000; // 10 min total (some Metabase exports really are this slow)
+const FETCH_HARD_TIMEOUT_MS  = 120_000; // 2 min max (reduced from 10 min for faster response)
 const CDN_FRESH_SEC          = 600;
 const CDN_STALE_SEC          = 3600;
 
