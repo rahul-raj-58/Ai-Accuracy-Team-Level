@@ -1077,7 +1077,7 @@
     <div class="rejected-container">
       <div class="rejected-header">
         <h2>Rejected Comments Analysis</h2>
-        <p class="rejected-sub">Most common rejection reasons by count</p>
+        <p class="rejected-sub">Top 20 most common issues by occurrence count</p>
       </div>
       <div class="rejected-list" id="rejectedList"></div>
     </div>
@@ -1186,7 +1186,7 @@
     "createdDate", "enterprise_id", "enterprise_name", "account_type",
     "team_id", "team_name", 
     "unique_sku_count", "unique_images", "edited_images",
-    "edited_image_ids", "rejected_comments_array"
+    "edited_image_ids", "rejection_comment_counts"
   ];
 
   let loadProgressTimer = null;
@@ -2442,56 +2442,56 @@
   }
 
   function buildRejectedCommentsTrend(filtered) {
-    // Parse all comments from filtered records and group by date
+    // Parse rejection_comment_counts from new format: [[comment, count], ...]
     const byDate = new Map();
+    const allComments = new Map(); // Track all comments globally
     
     for (const r of filtered) {
       const d = (r.createdDate || "").trim();
       if (!d) continue;
 
-      const arr = r.rejected_comments_array;
-      if (!arr) continue;
+      const countsField = r.rejection_comment_counts;
+      if (!countsField) continue;
 
-      let comments = [];
-      if (typeof arr === 'string') {
+      let counts = [];
+      if (typeof countsField === 'string') {
+        // Parse string format: "[[\"Mask Correction\", 3], [\"Wall Height\", 3]]"
         try {
-          comments = JSON.parse(arr);
+          counts = JSON.parse(countsField);
+          if (!Array.isArray(counts)) counts = [];
         } catch (_) {
-          const s = arr.trim();
-          if (s.startsWith('[') && s.endsWith(']')) {
-            const inner = s.slice(1, -1);
-            if (inner) {
-              comments = inner.split(',').map(c => c.replace(/^['"]|['"]$/g, '').trim()).filter(Boolean);
-            }
-          }
+          counts = [];
         }
-      } else if (Array.isArray(arr)) {
-        comments = arr;
+      } else if (Array.isArray(countsField)) {
+        counts = countsField;
       }
 
+      if (counts.length === 0) continue;
+
+      // Initialize day bucket
       if (!byDate.has(d)) {
         byDate.set(d, {});
       }
       const dayMap = byDate.get(d);
 
-      for (const comment of comments) {
+      // Process each [comment, count] pair
+      for (const item of counts) {
+        if (!Array.isArray(item) || item.length < 2) continue;
+        const [comment, count] = item;
         const c = (comment || "").trim();
-        if (c && c.toLowerCase() !== "null") {
-          dayMap[c] = (dayMap[c] || 0) + 1;
+        const cnt = parseInt(count, 10) || 0;
+        
+        if (c && cnt > 0 && c.toLowerCase() !== "null") {
+          dayMap[c] = (dayMap[c] || 0) + cnt;
+          allComments.set(c, (allComments.get(c) || 0) + cnt);
         }
       }
     }
 
-    // Get top 5 comments overall
-    const allComments = new Map();
-    for (const dayMap of byDate.values()) {
-      for (const [comment, count] of Object.entries(dayMap)) {
-        allComments.set(comment, (allComments.get(comment) || 0) + count);
-      }
-    }
+    // Get top 20 comments overall (instead of top 5)
     const topComments = [...allComments.entries()]
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
+      .slice(0, 20)
       .map(([c]) => c);
 
     // Build trend data
@@ -2530,35 +2530,43 @@
       return;
     }
 
-    // Parse rejected_comments_array and count occurrences
-    const rejectedMap = new Map(); // comment -> count
+    // Parse rejection_comment_counts and count occurrences
+    const rejectedMap = new Map(); // comment -> { count, images: number }
+    
     for (const r of filtered) {
-      const arr = r.rejected_comments_array;
-      if (!arr) continue;
+      const countsField = r.rejection_comment_counts;
+      if (!countsField) continue;
 
-      let comments = [];
-      if (typeof arr === 'string') {
-        // Parse array string like "['comment1','comment2']"
+      let counts = [];
+      if (typeof countsField === 'string') {
+        // Parse: "[[\"Mask Correction\", 3], [\"Wall Height\", 3]]"
         try {
-          comments = JSON.parse(arr);
+          counts = JSON.parse(countsField);
+          if (!Array.isArray(counts)) counts = [];
         } catch (_) {
-          // Try ClickHouse array format
-          const s = arr.trim();
-          if (s.startsWith('[') && s.endsWith(']')) {
-            const inner = s.slice(1, -1);
-            if (inner) {
-              comments = inner.split(',').map(c => c.replace(/^['"]|['"]$/g, '').trim()).filter(Boolean);
-            }
-          }
+          counts = [];
         }
-      } else if (Array.isArray(arr)) {
-        comments = arr;
+      } else if (Array.isArray(countsField)) {
+        counts = countsField;
       }
 
-      for (const comment of comments) {
+      // Process each [comment, count] pair
+      for (const item of counts) {
+        if (!Array.isArray(item) || item.length < 2) continue;
+        const [comment, count] = item;
         const c = (comment || "").trim();
-        if (c && c.toLowerCase() !== "null") {
-          rejectedMap.set(c, (rejectedMap.get(c) || 0) + 1);
+        const cnt = parseInt(count, 10) || 0;
+        
+        if (c && cnt > 0 && c.toLowerCase() !== "null") {
+          if (!rejectedMap.has(c)) {
+            rejectedMap.set(c, { count: 0, images: new Set() });
+          }
+          const bucket = rejectedMap.get(c);
+          bucket.count += cnt;
+          
+          // Track image if available
+          const imgId = (r.edited_image_ids || "").trim();
+          if (imgId) bucket.images.add(imgId);
         }
       }
     }
@@ -2570,19 +2578,19 @@
 
     $("#rejectedSection").hidden = false;
 
-    // Top 15 by count
+    // Top 20 by count
     const sorted = [...rejectedMap.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 15);
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 20);
 
     // Render list
-    const html = sorted.map(([comment, count]) => `
+    const html = sorted.map(([comment, data]) => `
       <div class="rejected-item" data-comment="${escapeHtml(comment)}">
         <div class="rejected-item-left">
           <div class="rejected-item-text">${escapeHtml(comment)}</div>
-          <div class="rejected-item-count">${count} occurrence${count === 1 ? "" : "s"}</div>
+          <div class="rejected-item-count">${fmt(data.count)} occurrence${data.count === 1 ? "" : "s"}</div>
         </div>
-        <div class="rejected-item-badge">${count}</div>
+        <div class="rejected-item-badge">${fmt(data.count)}</div>
       </div>
     `).join("");
 
@@ -2599,31 +2607,38 @@
 
   function showRejectedModal(selectedComment, allFiltered) {
     // Build drill-down data by enterprise/team
-    const byEnterprise = new Map(); // enterprise -> { team, account, images, edited, count }
+    const byEnterprise = new Map(); // enterprise || team -> { team, account, images, edited, count }
 
     for (const r of allFiltered) {
-      // Check if this record has the selected comment in its array
-      const arr = r.rejected_comments_array;
-      if (!arr) continue;
+      // Check if this record has the selected comment in its counts
+      const countsField = r.rejection_comment_counts;
+      if (!countsField) continue;
 
-      let comments = [];
-      if (typeof arr === 'string') {
+      let counts = [];
+      if (typeof countsField === 'string') {
         try {
-          comments = JSON.parse(arr);
+          counts = JSON.parse(countsField);
+          if (!Array.isArray(counts)) counts = [];
         } catch (_) {
-          const s = arr.trim();
-          if (s.startsWith('[') && s.endsWith(']')) {
-            const inner = s.slice(1, -1);
-            if (inner) {
-              comments = inner.split(',').map(c => c.replace(/^['"]|['"]$/g, '').trim()).filter(Boolean);
-            }
-          }
+          counts = [];
         }
-      } else if (Array.isArray(arr)) {
-        comments = arr;
+      } else if (Array.isArray(countsField)) {
+        counts = countsField;
       }
 
-      const hasComment = comments.some(c => (c || "").trim() === selectedComment);
+      let hasComment = false;
+      let commentCount = 0;
+      for (const item of counts) {
+        if (Array.isArray(item) && item.length >= 2) {
+          const [comment, count] = item;
+          if ((comment || "").trim() === selectedComment) {
+            hasComment = true;
+            commentCount = parseInt(count, 10) || 0;
+            break;
+          }
+        }
+      }
+      
       if (!hasComment) continue;
 
       const ent = (r.enterprise_name || "").trim() || "(empty)";
@@ -2639,21 +2654,21 @@
           account_type: account,
           images: toInt(r.unique_images),
           edited: toInt(r.edited_images),
-          count: 1
+          count: 0
         };
         byEnterprise.set(key, bucket);
       } else {
         bucket.images += toInt(r.unique_images);
         bucket.edited += toInt(r.edited_images);
-        bucket.count++;
       }
+      bucket.count += commentCount;
     }
 
     // Build rows
     const rows = [...byEnterprise.values()].sort((a, b) => b.count - a.count);
 
     // Render modal
-    $("#rejectedModalTitle").textContent = `Rejection: "${selectedComment}"`;
+    $("#rejectedModalTitle").textContent = `Issue: "${selectedComment}"`;
 
     const thead = document.querySelector(".rejected-modal-table thead");
     thead.innerHTML = `<tr>
@@ -2684,7 +2699,7 @@
     $("#rejectedModalFoot").innerHTML = `
       <div style="display: flex; justify-content: space-between;">
         <span><strong>${fmt(rows.length)}</strong> enterprise/team combos · <strong>${fmt(totalImages)}</strong> images · <strong>${fmt(totalEdited)}</strong> edited</span>
-        <span><strong>${fmt(totalCount)}</strong> occurrences of this comment</span>
+        <span><strong>${fmt(totalCount)}</strong> occurrences of this issue</span>
       </div>
     `;
 
