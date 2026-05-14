@@ -1,9 +1,7 @@
 {
-  "name": "image-operations-dashboard",
-  "version": "1.0.0",
-  "description": "Team level analytics dashboard",
+  "name": "spyne-dashboard",
+  "version": "2.0.0",
   "private": true,
-  "engines": {
-    "node": "24.x"
-  }
+  "description": "Spyne image operations dashboard, served on Vercel from Metabase public queries",
+  "engines": { "node": ">=18" }
 }
