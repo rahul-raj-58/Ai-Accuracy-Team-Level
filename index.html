@@ -1,421 +1,1980 @@
-<!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<!doctype html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Image Operations - Team Level Analytics</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root {
-      --bg: #1a1a1a;
-      --paper: #2d2d2d;
-      --ink: #f5f5f5;
-      --ink-soft: #b0b0b0;
-      --ink-faint: #666;
-      --accent: #ff6b35;
-    }
-    html[data-theme="light"] {
-      --bg: #f5f5f5;
-      --paper: #ffffff;
-      --ink: #16140f;
-      --ink-soft: #666;
-      --ink-faint: #999;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--ink);
-      line-height: 1.6;
-    }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Spyne · Image Operations Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #faf8f4;
+  --bg-elev: #ffffff;
+  --bg-soft: #f3efe7;
+  --border: #e6dfd1;
+  --border-strong: #c9bfa9;
+  --ink: #1a1a1a;
+  --ink-muted: #6b6356;
+  --ink-soft: #8a8170;
+  --accent: #c8511c;
+  --accent-2: #1a3a2e;
+  --accent-warn: #b8860b;
+  --accent-bad: #8b2c2c;
+  --grid: rgba(0,0,0,0.06);
 
-    header {
-      background: var(--paper);
-      border-bottom: 1px solid #444;
-      padding: 20px 40px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 20px;
-    }
-    header h1 { font-size: 28px; font-weight: 600; }
-    .header-right { display: flex; align-items: center; gap: 20px; }
-    .sync-info { font-size: 12px; color: var(--ink-faint); text-align: right; }
-    .sync-btn {
-      padding: 8px 16px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    .sync-btn:hover { opacity: 0.9; }
-    .sync-btn.loading { opacity: 0.6; cursor: not-allowed; }
-    .theme-toggle {
-      background: #444;
-      border: none;
-      color: var(--ink);
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      cursor: pointer;
-      font-size: 18px;
-    }
+  --series-1: #c8511c;
+  --series-2: #1a3a2e;
+  --series-3: #6b4ca8;
+  --series-4: #b8860b;
+  --series-5: #2d6e8c;
+  --series-6: #8b2c2c;
 
-    main { max-width: 1400px; margin: 0 auto; padding: 40px 20px; }
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05);
 
-    .message {
-      padding: 16px 20px;
-      border-radius: 4px;
-      margin-bottom: 20px;
-      display: none;
-    }
-    .message.show { display: block; }
-    .message.info { background: #0066cc; color: white; }
-    .message.error { background: #cc0000; color: white; }
+  --font-display: "Instrument Serif", Georgia, serif;
+  --font-body: "Inter Tight", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+[data-theme="dark"] {
+  --bg: #0e0d0b;
+  --bg-elev: #1a1814;
+  --bg-soft: #211e19;
+  --border: #2e2a23;
+  --border-strong: #4a4438;
+  --ink: #f0ebe0;
+  --ink-muted: #a8a094;
+  --ink-soft: #7a7368;
+  --accent: #e8703a;
+  --accent-2: #6dbb95;
+  --accent-warn: #e8c060;
+  --accent-bad: #d96868;
+  --grid: rgba(255,255,255,0.06);
 
-    .filters {
-      background: var(--paper);
-      border: 1px solid #444;
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 40px;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-    }
-    .filter-group label { display: block; font-size: 12px; color: var(--ink-faint); margin-bottom: 8px; font-weight: 600; }
-    .filter-group input,
-    .filter-group select {
-      width: 100%;
-      padding: 10px;
-      background: var(--bg);
-      border: 1px solid #444;
-      border-radius: 4px;
-      color: var(--ink);
-      font-size: 14px;
-    }
+  --series-1: #e8703a;
+  --series-2: #6dbb95;
+  --series-3: #a087d8;
+  --series-4: #e8c060;
+  --series-5: #5fa8c8;
+  --series-6: #d96868;
 
-    .kpis {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-      margin-bottom: 40px;
-    }
-    .kpi {
-      background: var(--paper);
-      border: 1px solid #444;
-      border-radius: 8px;
-      padding: 24px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .kpi:hover { border-color: var(--accent); }
-    .kpi-label { font-size: 12px; color: var(--ink-faint); margin-bottom: 12px; font-weight: 600; }
-    .kpi-value { font-size: 48px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
-    .kpi-sub { font-size: 12px; color: var(--ink-soft); }
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.3);
+}
 
-    .chart-section {
-      background: var(--paper);
-      border: 1px solid #444;
-      border-radius: 8px;
-      padding: 24px;
-      margin-bottom: 40px;
-    }
-    .chart-section h2 { font-size: 18px; margin-bottom: 24px; }
-    canvas { width: 100%; max-height: 400px; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
 
-    .detail-panel {
-      background: var(--paper);
-      border: 1px solid #444;
-      border-radius: 8px;
-      padding: 24px;
-      margin-bottom: 40px;
-      display: none;
-    }
-    .detail-panel.show { display: block; }
-    .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .detail-close { background: #444; border: none; color: var(--ink); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 18px; }
-    .detail-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    .detail-table thead { background: var(--bg); border-bottom: 2px solid #444; }
-    .detail-table th { padding: 12px; text-align: left; font-weight: 600; cursor: pointer; color: var(--ink-soft); }
-    .detail-table th:hover { color: var(--accent); }
-    .detail-table td { padding: 12px; border-bottom: 1px solid #444; }
-    .detail-table tr:hover { background: var(--bg); }
-  </style>
+/* ====== layout ====== */
+.shell { max-width: 1480px; margin: 0 auto; padding: 28px 32px 80px; }
+
+header.topbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+.brand .logo {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 36px;
+  line-height: 1;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+}
+.brand h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 30px;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.brand .sub {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* refresh timer pill */
+.timer-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-elev);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-muted);
+  box-shadow: var(--shadow-sm);
+}
+.timer-pill .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent-2);
+  box-shadow: 0 0 0 0 currentColor;
+  animation: pulse 2.2s ease-out infinite;
+}
+.timer-pill.refreshing .dot { background: var(--accent); }
+.timer-pill.stale .dot { background: var(--accent-warn); }
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(26,58,46,0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(26,58,46,0); }
+  100% { box-shadow: 0 0 0 0 rgba(26,58,46,0); }
+}
+.timer-pill b { color: var(--ink); font-weight: 600; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  color: var(--ink);
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn:hover { border-color: var(--border-strong); background: var(--bg-soft); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn-icon {
+  width: 38px; height: 38px;
+  padding: 0;
+  justify-content: center;
+}
+.btn-icon svg { width: 18px; height: 18px; }
+
+/* ====== filter strip ====== */
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin-bottom: 26px;
+  padding: 16px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+}
+.filter-field { display: flex; flex-direction: column; gap: 6px; }
+.filter-field label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+.filter-field input,
+.filter-field select {
+  padding: 9px 11px;
+  font: inherit;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.filter-field input:focus,
+.filter-field select:focus { border-color: var(--accent); }
+.filter-field .row { display: flex; gap: 6px; align-items: center; }
+.filter-field .row input { flex: 1; min-width: 0; }
+.preset-row { display: flex; gap: 6px; flex-wrap: wrap; align-self: end; }
+.preset {
+  padding: 7px 10px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--ink-muted);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.preset:hover { border-color: var(--accent); color: var(--accent); }
+.preset.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+/* ====== KPI grid ====== */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+.kpi {
+  position: relative;
+  padding: 22px 22px 20px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.kpi::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--kpi-color, var(--accent));
+}
+.kpi:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-strong);
+}
+.kpi .label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+}
+.kpi .value {
+  font-family: var(--font-display);
+  font-size: 44px;
+  line-height: 1;
+  font-weight: 400;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+.kpi .meta {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.kpi .meta b { color: var(--ink); font-weight: 600; }
+.kpi .drill-hint {
+  position: absolute;
+  bottom: 10px;
+  right: 14px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.kpi:hover .drill-hint { opacity: 1; }
+
+/* ====== panels ====== */
+.panel {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px 24px;
+  margin-bottom: 22px;
+  box-shadow: var(--shadow-sm);
+}
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.panel-head h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 24px;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.panel-head .desc {
+  font-size: 12px;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+.chart-wrap { position: relative; height: 360px; }
+.chart-wrap.tall { height: 420px; }
+
+.two-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 22px;
+  margin-bottom: 22px;
+}
+.two-col .panel { margin-bottom: 0; }
+
+/* ====== tables ====== */
+.table-wrap { overflow-x: auto; }
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+table.data th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 500;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-soft);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+table.data th:hover { color: var(--accent); }
+table.data th .sort-arrow {
+  display: inline-block;
+  margin-left: 4px;
+  opacity: 0.4;
+}
+table.data th.sorted .sort-arrow { opacity: 1; color: var(--accent); }
+table.data td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+table.data tbody tr { cursor: pointer; transition: background-color 0.1s ease; }
+table.data tbody tr:hover { background: var(--bg-soft); }
+table.data td.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+table.data tfoot td {
+  font-weight: 600;
+  background: var(--bg-soft);
+  border-top: 2px solid var(--border-strong);
+}
+
+/* ====== modal ====== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 1000;
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 20px;
+  overflow-y: auto;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--bg-elev);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 1100px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 80px);
+}
+.modal-head {
+  padding: 22px 26px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.modal-head h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.modal-head .modal-sub {
+  font-size: 12px;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  margin-top: 4px;
+}
+.modal-close {
+  border: none;
+  background: var(--bg-soft);
+  color: var(--ink);
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-close:hover { background: var(--border); }
+.modal-tools {
+  padding: 14px 26px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.modal-search {
+  flex: 1;
+  min-width: 220px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+.modal-body {
+  padding: 8px 12px 18px;
+  overflow-y: auto;
+  flex: 1;
+}
+.modal-body table.data th { background: var(--bg-elev); }
+
+.id-chip {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  color: var(--ink-muted);
+  margin: 1px 3px 1px 0;
+  white-space: nowrap;
+}
+.id-chip.more { background: var(--accent); color: #fff; border-color: var(--accent); cursor: pointer; }
+.comment-chip {
+  display: inline-block;
+  font-size: 11.5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(139,44,44,0.08);
+  color: var(--accent-bad);
+  border: 1px solid rgba(139,44,44,0.18);
+  margin: 1px 3px 1px 0;
+  white-space: nowrap;
+}
+[data-theme="dark"] .comment-chip {
+  background: rgba(217,104,104,0.12);
+  border-color: rgba(217,104,104,0.25);
+}
+
+/* ====== loading & empty states ====== */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-soft) 25%, var(--border) 50%, var(--bg-soft) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite;
+  border-radius: 6px;
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.empty {
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.error-banner {
+  padding: 14px 18px;
+  background: rgba(139,44,44,0.08);
+  border: 1px solid rgba(139,44,44,0.3);
+  border-radius: 10px;
+  color: var(--accent-bad);
+  font-size: 13px;
+  margin-bottom: 22px;
+}
+[data-theme="dark"] .error-banner {
+  background: rgba(217,104,104,0.1);
+  border-color: rgba(217,104,104,0.3);
+}
+
+/* ====== view toggle ====== */
+.seg {
+  display: inline-flex;
+  background: var(--bg-soft);
+  border-radius: 8px;
+  padding: 3px;
+  border: 1px solid var(--border);
+}
+.seg button {
+  border: none;
+  background: transparent;
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  cursor: pointer;
+  border-radius: 6px;
+}
+.seg button.active {
+  background: var(--bg-elev);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ====== misc ====== */
+.tag-strip { display: flex; flex-wrap: wrap; gap: 4px; max-width: 100%; }
+.muted { color: var(--ink-muted); }
+.fade-in { animation: fadeIn 0.4s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+footer.footnote {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-soft);
+  letter-spacing: 0.06em;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+@media (max-width: 720px) {
+  .shell { padding: 18px 14px 60px; }
+  .brand h1 { font-size: 22px; }
+  .brand .logo { font-size: 26px; }
+  .kpi .value { font-size: 34px; }
+  .panel { padding: 16px; }
+}
+</style>
 </head>
-<body>
-  <header>
-    <h1>📊 Image Operations - Team Level</h1>
-    <div class="header-right">
-      <div class="sync-info">
-        <div id="lastSync">Last sync: Never</div>
-        <div id="nextSync">Next sync: Soon</div>
+<body data-theme="light">
+<div class="shell">
+
+  <!-- header -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">S</span>
+      <div>
+        <h1>Image Operations</h1>
+        <span class="sub">Spyne · Live Analytics</span>
       </div>
-      <button class="sync-btn" id="syncBtn">Sync Now</button>
-      <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
+    <div class="topbar-actions">
+      <div class="timer-pill" id="timerPill" title="Auto-refreshes every hour">
+        <span class="dot"></span>
+        <span>Next refresh in <b id="timerText">--:--</b></span>
+      </div>
+      <button class="btn" id="refreshBtn" title="Refresh now">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16"/><path d="M3 21v-5h5"/></svg>
+        Refresh
+      </button>
+      <button class="btn btn-icon" id="themeBtn" title="Toggle theme" aria-label="Toggle theme"></button>
     </div>
   </header>
 
-  <main>
-    <div class="message info" id="message"></div>
-
-    <div class="filters">
-      <div class="filter-group">
-        <label>Date From</label>
-        <input type="date" id="dateFrom">
-      </div>
-      <div class="filter-group">
-        <label>Date To</label>
-        <input type="date" id="dateTo">
-      </div>
-      <div class="filter-group">
-        <label>Account Type</label>
-        <select id="accountType">
-          <option value="">All Types</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label>Enterprise (Optional)</label>
-        <select id="enterprise">
-          <option value="">All Enterprises</option>
-        </select>
+  <!-- filters -->
+  <section class="filters" id="filters">
+    <div class="filter-field">
+      <label>Date range</label>
+      <div class="row">
+        <input type="date" id="dateFrom" />
+        <input type="date" id="dateTo" />
       </div>
     </div>
-
-    <div class="kpis">
-      <div class="kpi" data-card="enterprises">
-        <div class="kpi-label">Unique Enterprises</div>
-        <div class="kpi-value" id="kpiEnterprises">—</div>
-        <div class="kpi-sub">Click to see breakdown</div>
-      </div>
-      <div class="kpi" data-card="teams">
-        <div class="kpi-label">Unique Teams</div>
-        <div class="kpi-value" id="kpiTeams">—</div>
-        <div class="kpi-sub">Click to see breakdown</div>
-      </div>
-      <div class="kpi" data-card="images">
-        <div class="kpi-label">Unique Images</div>
-        <div class="kpi-value" id="kpiImages">—</div>
-        <div class="kpi-sub">Click to see breakdown</div>
-      </div>
-      <div class="kpi" data-card="skus">
-        <div class="kpi-label">Unique SKUs</div>
-        <div class="kpi-value" id="kpiSkus">—</div>
-        <div class="kpi-sub">Click to see breakdown</div>
+    <div class="filter-field">
+      <label>Quick range</label>
+      <div class="preset-row">
+        <button class="preset" data-range="7">7d</button>
+        <button class="preset" data-range="30">30d</button>
+        <button class="preset" data-range="90">90d</button>
+        <button class="preset" data-range="all">All</button>
       </div>
     </div>
-
-    <div class="chart-section">
-      <h2>Top 10 Rejection Reasons</h2>
-      <canvas id="chart"></canvas>
+    <div class="filter-field">
+      <label>Enterprise</label>
+      <select id="filterEnterprise"><option value="">All enterprises</option></select>
     </div>
+    <div class="filter-field">
+      <label>Team</label>
+      <select id="filterTeam"><option value="">All teams</option></select>
+    </div>
+    <div class="filter-field">
+      <label>Account type</label>
+      <select id="filterAccount"><option value="">All account types</option></select>
+    </div>
+  </section>
 
-    <div class="detail-panel" id="detailPanel">
-      <div class="detail-header">
-        <h2 id="detailTitle">Details</h2>
-        <button class="detail-close" id="detailClose">✕</button>
+  <!-- error banner -->
+  <div id="errorBanner" class="error-banner" style="display:none"></div>
+
+  <!-- KPIs -->
+  <section class="kpi-grid" id="kpiGrid">
+    <div class="kpi" style="--kpi-color: var(--series-2)" data-drill="enterprises">
+      <div class="label">Distinct enterprises</div>
+      <div class="value" id="kpiEnterprises">—</div>
+      <div class="meta"><b id="kpiEntMeta">—</b></div>
+      <div class="drill-hint">↗ tap to break down</div>
+    </div>
+    <div class="kpi" style="--kpi-color: var(--series-3)" data-drill="teams">
+      <div class="label">Distinct teams</div>
+      <div class="value" id="kpiTeams">—</div>
+      <div class="meta"><b id="kpiTeamMeta">—</b></div>
+      <div class="drill-hint">↗ tap to break down</div>
+    </div>
+    <div class="kpi" style="--kpi-color: var(--series-1)" data-drill="images">
+      <div class="label">Total images</div>
+      <div class="value" id="kpiImages">—</div>
+      <div class="meta"><b id="kpiImgMeta">—</b></div>
+      <div class="drill-hint">↗ tap to break down</div>
+    </div>
+    <div class="kpi" style="--kpi-color: var(--series-4)" data-drill="edits">
+      <div class="label">Edited images</div>
+      <div class="value" id="kpiEdits">—</div>
+      <div class="meta"><b id="kpiEditMeta">—</b></div>
+      <div class="drill-hint">↗ tap to break down</div>
+    </div>
+    <div class="kpi" style="--kpi-color: var(--series-5)" data-drill="skus">
+      <div class="label">Unique SKUs</div>
+      <div class="value" id="kpiSkus">—</div>
+      <div class="meta"><b id="kpiSkuMeta">—</b></div>
+      <div class="drill-hint">↗ tap to break down</div>
+    </div>
+    <div class="kpi" style="--kpi-color: var(--series-2)" data-drill="ai">
+      <div class="label">AI accuracy</div>
+      <div class="value" id="kpiAi">—</div>
+      <div class="meta">Edit rate · <b id="kpiAiMeta">—</b></div>
+      <div class="drill-hint">↗ tap to break down</div>
+    </div>
+  </section>
+
+  <!-- main trend -->
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Daily volume & edit ratio</h2>
+        <div class="desc">Total · edited · AI accuracy %, day by day</div>
       </div>
-      <table class="detail-table">
-        <thead id="detailHead"></thead>
-        <tbody id="detailBody"></tbody>
+      <div class="seg" id="trendSeg">
+        <button class="active" data-mode="combined">Combined</button>
+        <button data-mode="bars">Bars only</button>
+      </div>
+    </div>
+    <div class="chart-wrap tall"><canvas id="chartTrend"></canvas></div>
+  </section>
+
+  <!-- two col: account + team -->
+  <section class="two-col">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Account type mix</h2>
+          <div class="desc">Image volume share</div>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="chartAccount"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Top teams</h2>
+          <div class="desc">By total images · click row to drill</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="data" id="tableTopTeams">
+          <thead>
+            <tr>
+              <th>Team</th>
+              <th>Enterprise</th>
+              <th class="num">Images</th>
+              <th class="num">Edited</th>
+              <th class="num">Edit %</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- rejected comments trend -->
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Rejection feedback trend</h2>
+        <div class="desc">Top rejection comments over time · click line for breakdown</div>
+      </div>
+      <div class="seg" id="rejSeg">
+        <button class="active" data-mode="trend">Trend</button>
+        <button data-mode="top">Top reasons</button>
+      </div>
+    </div>
+    <div class="chart-wrap tall" id="rejTrendWrap"><canvas id="chartRejTrend"></canvas></div>
+    <div class="table-wrap" id="rejTopWrap" style="display:none">
+      <table class="data" id="tableRejTop">
+        <thead>
+          <tr>
+            <th>Rejection comment</th>
+            <th class="num">Total</th>
+            <th class="num">% of total</th>
+            <th class="num">Avg / day</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
       </table>
     </div>
-  </main>
+  </section>
 
-  <script>
-    const $ = id => document.getElementById(id);
-    const msg = text => { const el = $('message'); el.textContent = text; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 5000); };
-    const fmt = n => n ? n.toLocaleString() : '0';
+</div>
 
-    let state = {
-      data: [],
-      filtered: [],
-      currentCard: null
+<!-- modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h3 id="modalTitle">Detail</h3>
+        <div class="modal-sub" id="modalSub"></div>
+      </div>
+      <button class="modal-close" id="modalClose" aria-label="Close">×</button>
+    </div>
+    <div class="modal-tools">
+      <input type="text" class="modal-search" id="modalSearch" placeholder="Search…" />
+      <span class="muted" id="modalCount" style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;"></span>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<footer class="footnote">
+  <div>Spyne · Image Operations Dashboard · v3.0</div>
+  <div>Data sourced from Metabase · cached 1h</div>
+</footer>
+
+<script>
+/* =========================================================
+   CONFIG
+========================================================= */
+const REFRESH_MS = 60 * 60 * 1000;       // 1 hour
+const TIMER_TICK_MS = 1000;
+const API_URL = "/api/data";
+const LS_THEME = "spyne_theme_v1";
+
+/* =========================================================
+   STATE
+========================================================= */
+const state = {
+  main: [],          // full rows from main question
+  rejected: [],      // full rows from rejected comments question
+  filtered: [],      // main rows after filters
+  filteredRej: [],   // rejected rows after date filter
+  enterprises: [],
+  teams: [],
+  accounts: [],
+  dateMin: null,
+  dateMax: null,
+  loadedAt: null,
+  nextRefreshAt: null,
+  charts: {},
+  trendMode: "combined",
+  rejMode: "trend",
+};
+
+/* =========================================================
+   THEME
+========================================================= */
+const sunSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>';
+const moonSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+
+function applyTheme(t) {
+  document.body.setAttribute("data-theme", t);
+  document.getElementById("themeBtn").innerHTML = t === "dark" ? sunSvg : moonSvg;
+  localStorage.setItem(LS_THEME, t);
+  // re-render charts so colors update
+  if (state.main.length) renderAll();
+}
+function toggleTheme() {
+  const cur = document.body.getAttribute("data-theme") || "light";
+  applyTheme(cur === "dark" ? "light" : "dark");
+}
+(function initTheme() {
+  const saved = localStorage.getItem(LS_THEME);
+  if (saved) applyTheme(saved);
+  else applyTheme(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+})();
+document.getElementById("themeBtn").addEventListener("click", toggleTheme);
+
+/* =========================================================
+   HELPERS
+========================================================= */
+const fmtInt = (n) => n == null || isNaN(n) ? "—" : Math.round(n).toLocaleString();
+const fmtPct = (n) => n == null || isNaN(n) ? "—" : (n * 100).toFixed(1) + "%";
+const fmtPctRaw = (n) => n == null || isNaN(n) ? "—" : n.toFixed(1) + "%";
+
+function parseDate(s) {
+  if (!s) return null;
+  // handles "2026-05-13", "2026-05-13T..." or "2026-05-13 10:00:00"
+  const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  return m[1] + "-" + m[2] + "-" + m[3];
+}
+function num(s) { const n = Number(String(s ?? "").replace(/,/g, "")); return isNaN(n) ? 0 : n; }
+
+// split list-like cells: "[a, b, c]" or "a, b, c" or "a;b;c"
+function splitList(s) {
+  if (!s) return [];
+  const clean = String(s).trim().replace(/^\[|\]$/g, "");
+  if (!clean) return [];
+  // split on comma or semicolon, but try to preserve quoted strings
+  // simple split is good enough for IDs and short comments
+  return clean.split(/[,;]/).map((x) => x.trim().replace(/^["']|["']$/g, "")).filter(Boolean);
+}
+
+function distinct(arr) { return Array.from(new Set(arr)); }
+
+function colorByIndex(i) {
+  const cs = getComputedStyle(document.body);
+  const list = [
+    cs.getPropertyValue("--series-1"),
+    cs.getPropertyValue("--series-2"),
+    cs.getPropertyValue("--series-3"),
+    cs.getPropertyValue("--series-4"),
+    cs.getPropertyValue("--series-5"),
+    cs.getPropertyValue("--series-6"),
+  ].map((s) => s.trim());
+  return list[i % list.length];
+}
+function cssVar(name) { return getComputedStyle(document.body).getPropertyValue(name).trim(); }
+
+function todayISO() { return new Date().toISOString().slice(0, 10); }
+function addDays(iso, d) {
+  const dt = new Date(iso + "T00:00:00Z");
+  dt.setUTCDate(dt.getUTCDate() + d);
+  return dt.toISOString().slice(0, 10);
+}
+
+/* =========================================================
+   DATA FETCH
+========================================================= */
+async function load(opts = {}) {
+  setTimerState("refreshing");
+  if (!opts.silent) showSkeletons();
+  try {
+    const url = API_URL + (opts.bust ? "?t=" + Date.now() : "");
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error("API returned " + res.status);
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || "Upstream error");
+    onData(json);
+    document.getElementById("errorBanner").style.display = "none";
+  } catch (err) {
+    showError(err.message || String(err));
+  } finally {
+    state.loadedAt = new Date();
+    state.nextRefreshAt = new Date(state.loadedAt.getTime() + REFRESH_MS);
+    setTimerState("ok");
+  }
+}
+
+function showError(msg) {
+  const b = document.getElementById("errorBanner");
+  b.style.display = "";
+  b.textContent = "Couldn't load data: " + msg + " — try the Refresh button.";
+}
+
+function onData(json) {
+  // normalize rows
+  state.main = (json.main || []).map((r) => ({
+    createdDate: parseDate(r.createdDate || r.created_date || r.date),
+    enterprise_id: String(r.enterprise_id || "").trim(),
+    enterprise_name: String(r.enterprise_name || "").trim() || "(unknown)",
+    account_type: String(r.account_type || "").trim() || "(unknown)",
+    team_id: String(r.team_id || "").trim(),
+    team_name: String(r.team_name || "").trim() || "(unknown)",
+    unique_sku_count: num(r.unique_sku_count),
+    unique_images: num(r.unique_images),
+    edited_images: num(r.edited_images),
+    edited_image_ids: splitList(r.edited_image_ids),
+    rejected_comments_array: splitList(r.rejected_comments_array),
+  })).filter((r) => r.createdDate);
+
+  state.rejected = (json.rejected || []).map((r) => ({
+    createdDate: parseDate(r.createdDate || r.created_date || r.date),
+    rejected_comment: String(r.rejected_comment || "").trim() || "(blank)",
+    edited_images: num(r.edited_images),
+  })).filter((r) => r.createdDate);
+
+  // populate filter options
+  state.enterprises = distinct(state.main.map((r) => r.enterprise_name)).sort();
+  state.teams = distinct(state.main.map((r) => r.team_name)).sort();
+  state.accounts = distinct(state.main.map((r) => r.account_type)).sort();
+
+  fillSelect("filterEnterprise", state.enterprises, "All enterprises");
+  fillSelect("filterTeam", state.teams, "All teams");
+  fillSelect("filterAccount", state.accounts, "All account types");
+
+  // date bounds
+  const dates = state.main.map((r) => r.createdDate).sort();
+  state.dateMin = dates[0] || todayISO();
+  state.dateMax = dates[dates.length - 1] || todayISO();
+  const df = document.getElementById("dateFrom");
+  const dt = document.getElementById("dateTo");
+  if (!df.value) df.value = state.dateMin;
+  if (!dt.value) dt.value = state.dateMax;
+  df.min = state.dateMin; df.max = state.dateMax;
+  dt.min = state.dateMin; dt.max = state.dateMax;
+
+  renderAll();
+}
+
+function fillSelect(id, items, allLabel) {
+  const sel = document.getElementById(id);
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">' + allLabel + "</option>" +
+    items.map((i) => '<option value="' + escapeHtml(i) + '">' + escapeHtml(i) + "</option>").join("");
+  if (items.includes(cur)) sel.value = cur;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+
+/* =========================================================
+   FILTER + RENDER
+========================================================= */
+function applyFilters() {
+  const from = document.getElementById("dateFrom").value;
+  const to = document.getElementById("dateTo").value;
+  const ent = document.getElementById("filterEnterprise").value;
+  const tm = document.getElementById("filterTeam").value;
+  const acc = document.getElementById("filterAccount").value;
+
+  state.filtered = state.main.filter((r) => {
+    if (from && r.createdDate < from) return false;
+    if (to && r.createdDate > to) return false;
+    if (ent && r.enterprise_name !== ent) return false;
+    if (tm && r.team_name !== tm) return false;
+    if (acc && r.account_type !== acc) return false;
+    return true;
+  });
+
+  state.filteredRej = state.rejected.filter((r) => {
+    if (from && r.createdDate < from) return false;
+    if (to && r.createdDate > to) return false;
+    return true;
+  });
+}
+
+function renderAll() {
+  applyFilters();
+  renderKpis();
+  renderTrendChart();
+  renderAccountChart();
+  renderTopTeamsTable();
+  renderRejectedTrend();
+  renderRejectedTopTable();
+}
+
+function renderKpis() {
+  const f = state.filtered;
+  const enterprises = distinct(f.map((r) => r.enterprise_id || r.enterprise_name)).filter(Boolean);
+  const teams = distinct(f.map((r) => r.team_id || r.team_name)).filter(Boolean);
+  const totalImg = f.reduce((s, r) => s + r.unique_images, 0);
+  const totalEdit = f.reduce((s, r) => s + r.edited_images, 0);
+  const totalSku = f.reduce((s, r) => s + r.unique_sku_count, 0);
+  const days = distinct(f.map((r) => r.createdDate)).length || 1;
+  const editPct = totalImg > 0 ? totalEdit / totalImg : 0;
+  const ai = 100 - editPct * 100;
+
+  document.getElementById("kpiEnterprises").textContent = fmtInt(enterprises.length);
+  document.getElementById("kpiEntMeta").textContent =
+    enterprises.length + " active · " + days + " day" + (days !== 1 ? "s" : "");
+
+  document.getElementById("kpiTeams").textContent = fmtInt(teams.length);
+  document.getElementById("kpiTeamMeta").textContent =
+    "across " + enterprises.length + " enterprise" + (enterprises.length !== 1 ? "s" : "");
+
+  document.getElementById("kpiImages").textContent = fmtInt(totalImg);
+  document.getElementById("kpiImgMeta").textContent =
+    fmtInt(totalImg / days) + " / day avg";
+
+  document.getElementById("kpiEdits").textContent = fmtInt(totalEdit);
+  document.getElementById("kpiEditMeta").textContent =
+    fmtPct(editPct) + " of total";
+
+  document.getElementById("kpiSkus").textContent = fmtInt(totalSku);
+  document.getElementById("kpiSkuMeta").textContent =
+    fmtInt(totalSku / days) + " / day avg";
+
+  document.getElementById("kpiAi").textContent = ai.toFixed(1) + "%";
+  document.getElementById("kpiAiMeta").textContent = fmtPctRaw(editPct * 100);
+}
+
+/* ---------- TREND CHART (daily volume + AI %) ---------- */
+function dailyAgg() {
+  const map = new Map();
+  for (const r of state.filtered) {
+    if (!map.has(r.createdDate)) map.set(r.createdDate, { images: 0, edited: 0, skus: 0 });
+    const o = map.get(r.createdDate);
+    o.images += r.unique_images;
+    o.edited += r.edited_images;
+    o.skus += r.unique_sku_count;
+  }
+  const dates = Array.from(map.keys()).sort();
+  return dates.map((d) => ({ d, ...map.get(d) }));
+}
+
+function renderTrendChart() {
+  const ctx = document.getElementById("chartTrend").getContext("2d");
+  if (state.charts.trend) state.charts.trend.destroy();
+  const data = dailyAgg();
+  if (data.length === 0) {
+    state.charts.trend = null;
+    return;
+  }
+  const labels = data.map((d) => d.d);
+  const accuracy = data.map((d) => d.images > 0 ? (1 - d.edited / d.images) * 100 : 100);
+
+  const datasets = [];
+  if (state.trendMode === "combined" || state.trendMode === "bars") {
+    datasets.push({
+      type: "bar",
+      label: "Total images",
+      data: data.map((d) => d.images),
+      backgroundColor: colorByIndex(0) + "cc",
+      borderRadius: 3,
+      borderSkipped: false,
+      yAxisID: "y",
+      order: 2,
+    });
+    datasets.push({
+      type: "bar",
+      label: "Edited images",
+      data: data.map((d) => d.edited),
+      backgroundColor: colorByIndex(5) + "cc",
+      borderRadius: 3,
+      borderSkipped: false,
+      yAxisID: "y",
+      order: 3,
+    });
+  }
+  if (state.trendMode === "combined") {
+    datasets.push({
+      type: "line",
+      label: "AI accuracy %",
+      data: accuracy,
+      borderColor: colorByIndex(1),
+      backgroundColor: colorByIndex(1) + "22",
+      borderWidth: 2.5,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      tension: 0.32,
+      yAxisID: "y1",
+      order: 1,
+    });
+  }
+
+  state.charts.trend = new Chart(ctx, {
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { position: "bottom", labels: { color: cssVar("--ink-muted"), font: { family: "Inter Tight", size: 12 }, usePointStyle: true, padding: 16 } },
+        tooltip: tooltipStyle(),
+      },
+      scales: {
+        x: axisStyle(),
+        y: axisStyle({ position: "left", title: "images" }),
+        y1: state.trendMode === "combined" ? axisStyle({ position: "right", title: "AI %", min: 0, max: 100, grid: false }) : undefined,
+      },
+    },
+  });
+}
+
+/* ---------- ACCOUNT TYPE STACKED AREA ---------- */
+function renderAccountChart() {
+  const ctx = document.getElementById("chartAccount").getContext("2d");
+  if (state.charts.account) state.charts.account.destroy();
+  if (state.filtered.length === 0) { state.charts.account = null; return; }
+
+  const dates = distinct(state.filtered.map((r) => r.createdDate)).sort();
+  const types = distinct(state.filtered.map((r) => r.account_type));
+
+  const series = types.map((t, i) => {
+    const data = dates.map((d) =>
+      state.filtered
+        .filter((r) => r.createdDate === d && r.account_type === t)
+        .reduce((s, r) => s + r.unique_images, 0)
+    );
+    return {
+      label: t,
+      data,
+      backgroundColor: colorByIndex(i) + "55",
+      borderColor: colorByIndex(i),
+      borderWidth: 1.5,
+      fill: true,
+      tension: 0.3,
+      pointRadius: 0,
     };
+  });
 
-    // Safe rejection parsing
-    function parseRejections(str) {
-      if (!str || typeof str !== 'string') return [];
-      try {
-        const parsed = JSON.parse(str);
-        if (!Array.isArray(parsed)) return [];
-        // Only get first 100 items to prevent stack overflow
-        return parsed.slice(0, 100);
-      } catch {
-        return [];
-      }
-    }
+  state.charts.account = new Chart(ctx, {
+    type: "line",
+    data: { labels: dates, datasets: series },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { position: "bottom", labels: { color: cssVar("--ink-muted"), font: { family: "Inter Tight", size: 12 }, usePointStyle: true, padding: 14 } },
+        tooltip: tooltipStyle(),
+      },
+      scales: {
+        x: axisStyle(),
+        y: axisStyle({ stacked: true }),
+      },
+      onClick: (e, els) => {
+        if (!els.length) return;
+        const idx = els[0].datasetIndex;
+        const acc = types[idx];
+        openDrill({
+          title: "Account type · " + acc,
+          sub: "Enterprise × team breakdown for " + acc,
+          rows: enterpriseTeamBreakdown(state.filtered.filter((r) => r.account_type === acc)),
+          columns: enterpriseTeamColumns(),
+        });
+      },
+    },
+  });
+}
 
-    async function fetchData() {
-      $('syncBtn').classList.add('loading');
-      try {
-        const res = await fetch('/api/data');
-        const json = await res.json();
-        if (!json.ok) throw new Error(json.error || 'Failed to load');
-        state.data = (json.records || []).slice(0, 5000); // Limit to 5000 records
-        $('lastSync').textContent = `Last sync: ${new Date().toLocaleTimeString()}`;
-        updateDashboard();
-        msg(`✓ Data loaded (${fmt(state.data.length)} records)`);
-      } catch (err) {
-        msg(`✗ Error: ${err.message}`);
-      } finally {
-        $('syncBtn').classList.remove('loading');
-      }
-    }
+/* ---------- TOP TEAMS TABLE ---------- */
+function renderTopTeamsTable() {
+  const map = new Map();
+  for (const r of state.filtered) {
+    const key = r.team_id + "::" + r.team_name + "::" + r.enterprise_name;
+    if (!map.has(key)) map.set(key, { team_id: r.team_id, team_name: r.team_name, enterprise_name: r.enterprise_name, images: 0, edited: 0, rows: [] });
+    const o = map.get(key);
+    o.images += r.unique_images;
+    o.edited += r.edited_images;
+    o.rows.push(r);
+  }
+  const rows = Array.from(map.values())
+    .sort((a, b) => b.images - a.images)
+    .slice(0, 10);
 
-    function applyFilters() {
-      const dateFrom = $('dateFrom').value ? new Date($('dateFrom').value) : null;
-      const dateTo = $('dateTo').value ? new Date($('dateTo').value) : null;
-      if (dateTo) dateTo.setHours(23, 59, 59);
-      const acctType = $('accountType').value;
-      const ent = $('enterprise').value;
+  const tbody = document.querySelector("#tableTopTeams tbody");
+  tbody.innerHTML = rows.map((r) => `
+    <tr data-team-id="${escapeHtml(r.team_id)}" data-team-name="${escapeHtml(r.team_name)}">
+      <td>${escapeHtml(r.team_name)}<br><span class="muted" style="font-size:11px;font-family:var(--font-mono)">${escapeHtml(r.team_id || "—")}</span></td>
+      <td>${escapeHtml(r.enterprise_name)}</td>
+      <td class="num">${fmtInt(r.images)}</td>
+      <td class="num">${fmtInt(r.edited)}</td>
+      <td class="num">${r.images > 0 ? ((r.edited / r.images) * 100).toFixed(1) : "0"}%</td>
+    </tr>
+  `).join("") || `<tr><td colspan="5" class="empty">No data in this range</td></tr>`;
 
-      state.filtered = state.data.filter(r => {
-        if (dateFrom && new Date(r.createdDate) < dateFrom) return false;
-        if (dateTo && new Date(r.createdDate) > dateTo) return false;
-        if (acctType && r.account_type !== acctType) return false;
-        if (ent && r.enterprise_name !== ent) return false;
-        return true;
+  tbody.querySelectorAll("tr[data-team-id]").forEach((tr) => {
+    tr.addEventListener("click", () => {
+      const teamName = tr.dataset.teamName;
+      const teamRows = state.filtered.filter((r) => r.team_name === teamName);
+      openDrill({
+        title: "Team · " + teamName,
+        sub: teamRows.length + " daily entries · click row for image IDs",
+        rows: dailyTeamBreakdown(teamRows),
+        columns: dailyTeamColumns(),
       });
-
-      updateDashboard();
-    }
-
-    function calculateKPIs() {
-      const ents = new Set(state.filtered.map(r => r.enterprise_name).filter(Boolean));
-      const teams = new Set(state.filtered.map(r => r.team_id).filter(Boolean));
-      const imgs = state.filtered.reduce((s, r) => s + parseInt(r.unique_images || 0), 0);
-      const skus = state.filtered.reduce((s, r) => s + parseInt(r.unique_sku_count || 0), 0);
-
-      $('kpiEnterprises').textContent = fmt(ents.size);
-      $('kpiTeams').textContent = fmt(teams.size);
-      $('kpiImages').textContent = fmt(imgs);
-      $('kpiSkus').textContent = fmt(skus);
-    }
-
-    function buildRejectionChart() {
-      const counts = {};
-      
-      // Safely iterate through filtered records
-      for (let i = 0; i < Math.min(state.filtered.length, 1000); i++) {
-        const r = state.filtered[i];
-        if (!r.rejected_comment_counts) continue;
-        
-        const rejections = parseRejections(r.rejected_comment_counts);
-        if (!Array.isArray(rejections)) continue;
-        
-        for (let j = 0; j < rejections.length; j++) {
-          const item = rejections[j];
-          if (!Array.isArray(item) || item.length < 2) continue;
-          const [reason, count] = item;
-          if (!reason || !count) continue;
-          counts[reason] = (counts[reason] || 0) + parseInt(count || 0);
-        }
-      }
-
-      const sorted = Object.entries(counts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10);
-
-      drawChart(sorted);
-    }
-
-    function drawChart(data) {
-      const canvas = $('chart');
-      const ctx = canvas.getContext('2d');
-      const w = canvas.offsetWidth || 800;
-      const h = 350;
-      canvas.width = w;
-      canvas.height = h;
-
-      if (!data || data.length === 0) {
-        ctx.fillStyle = '#666';
-        ctx.font = '14px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('No rejection data', w / 2, h / 2);
-        return;
-      }
-
-      const padding = { left: 50, right: 20, top: 20, bottom: 80 };
-      const plotW = w - padding.left - padding.right;
-      const plotH = h - padding.top - padding.bottom;
-      const barW = plotW / data.length * 0.8;
-      const spacing = plotW / data.length;
-      const maxVal = Math.max(...data.map(d => d[1]));
-
-      ctx.fillStyle = '#ff6b35';
-      for (let i = 0; i < data.length; i++) {
-        const x = padding.left + i * spacing + spacing * 0.1;
-        const barH = (data[i][1] / maxVal) * plotH;
-        const y = padding.top + plotH - barH;
-        ctx.fillRect(x, y, barW, barH);
-      }
-
-      ctx.fillStyle = '#f5f5f5';
-      ctx.font = '12px sans-serif';
-      ctx.textAlign = 'center';
-      for (let i = 0; i < data.length; i++) {
-        const x = padding.left + i * spacing + spacing / 2;
-        ctx.save();
-        ctx.translate(x, h - padding.bottom + 20);
-        ctx.rotate(-Math.PI / 4);
-        ctx.fillText(String(data[i][0]).slice(0, 15), 0, 0);
-        ctx.restore();
-      }
-    }
-
-    function showDetail(card) {
-      state.currentCard = card;
-      const panel = $('detailPanel');
-      panel.classList.add('show');
-    }
-
-    function updateDashboard() {
-      applyFilters();
-      calculateKPIs();
-      buildRejectionChart();
-      populateFilters();
-    }
-
-    function populateFilters() {
-      const accts = [...new Set(state.data.map(r => r.account_type).filter(Boolean))].sort();
-      const ents = [...new Set(state.data.map(r => r.enterprise_name).filter(Boolean))].sort();
-
-      $('accountType').innerHTML = '<option value="">All Types</option>' + accts.map(a => `<option>${a}</option>`).join('');
-      $('enterprise').innerHTML = '<option value="">All Enterprises</option>' + ents.map(e => `<option>${e}</option>`).join('');
-    }
-
-    $('syncBtn').addEventListener('click', fetchData);
-    $('dateFrom').addEventListener('change', applyFilters);
-    $('dateTo').addEventListener('change', applyFilters);
-    $('accountType').addEventListener('change', applyFilters);
-    $('enterprise').addEventListener('change', applyFilters);
-    $('detailClose').addEventListener('click', () => { $('detailPanel').classList.remove('show'); state.currentCard = null; });
-
-    document.querySelectorAll('[data-card]').forEach(el => {
-      el.addEventListener('click', () => showDetail(el.dataset.card));
     });
+  });
+}
 
-    $('themeToggle').addEventListener('click', () => {
-      const html = document.documentElement;
-      const isDark = html.getAttribute('data-theme') === 'dark';
-      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
-      $('themeToggle').textContent = isDark ? '☀️' : '🌙';
-      localStorage.setItem('theme', isDark ? 'light' : 'dark');
+/* ---------- REJECTED COMMENTS TREND ---------- */
+function topRejected(n = 5) {
+  const counts = new Map();
+  for (const r of state.filteredRej) {
+    counts.set(r.rejected_comment, (counts.get(r.rejected_comment) || 0) + r.edited_images);
+  }
+  return Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, n)
+    .map(([k]) => k);
+}
+
+function renderRejectedTrend() {
+  document.getElementById("rejTrendWrap").style.display = state.rejMode === "trend" ? "" : "none";
+  document.getElementById("rejTopWrap").style.display = state.rejMode === "top" ? "" : "none";
+  if (state.rejMode !== "trend") return;
+
+  const ctx = document.getElementById("chartRejTrend").getContext("2d");
+  if (state.charts.rej) state.charts.rej.destroy();
+  if (state.filteredRej.length === 0) { state.charts.rej = null; return; }
+
+  const top = topRejected(5);
+  const dates = distinct(state.filteredRej.map((r) => r.createdDate)).sort();
+  const series = top.map((c, i) => ({
+    label: c.length > 32 ? c.slice(0, 32) + "…" : c,
+    fullLabel: c,
+    data: dates.map((d) =>
+      state.filteredRej
+        .filter((r) => r.createdDate === d && r.rejected_comment === c)
+        .reduce((s, r) => s + r.edited_images, 0)
+    ),
+    borderColor: colorByIndex(i),
+    backgroundColor: colorByIndex(i) + "22",
+    borderWidth: 2.2,
+    pointRadius: 2.5,
+    pointHoverRadius: 5,
+    tension: 0.3,
+    fill: false,
+  }));
+
+  state.charts.rej = new Chart(ctx, {
+    type: "line",
+    data: { labels: dates, datasets: series },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { position: "bottom", labels: { color: cssVar("--ink-muted"), font: { family: "Inter Tight", size: 11 }, usePointStyle: true, padding: 12, boxWidth: 8 } },
+        tooltip: tooltipStyle({ titleCb: (items) => items[0].label }),
+      },
+      scales: {
+        x: axisStyle(),
+        y: axisStyle({ title: "occurrences" }),
+      },
+      onClick: (e, els) => {
+        if (!els.length) return;
+        const di = els[0].datasetIndex;
+        const comment = top[di];
+        openDrill({
+          title: "Rejection · " + comment,
+          sub: "Daily occurrences and enterprises linked to this comment",
+          rows: rejCommentBreakdown(comment),
+          columns: rejCommentColumns(),
+        });
+      },
+    },
+  });
+}
+
+function renderRejectedTopTable() {
+  if (state.rejMode !== "top") return;
+  const counts = new Map();
+  for (const r of state.filteredRej) {
+    counts.set(r.rejected_comment, (counts.get(r.rejected_comment) || 0) + r.edited_images);
+  }
+  const total = Array.from(counts.values()).reduce((s, v) => s + v, 0);
+  const days = distinct(state.filteredRej.map((r) => r.createdDate)).length || 1;
+  const rows = Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 20);
+
+  const tbody = document.querySelector("#tableRejTop tbody");
+  tbody.innerHTML = rows.map(([c, v]) => `
+    <tr data-comment="${escapeHtml(c)}">
+      <td>${escapeHtml(c)}</td>
+      <td class="num">${fmtInt(v)}</td>
+      <td class="num">${total > 0 ? ((v / total) * 100).toFixed(1) : "0"}%</td>
+      <td class="num">${(v / days).toFixed(1)}</td>
+    </tr>
+  `).join("") || `<tr><td colspan="4" class="empty">No data in this range</td></tr>`;
+
+  tbody.querySelectorAll("tr[data-comment]").forEach((tr) => {
+    tr.addEventListener("click", () => {
+      const c = tr.dataset.comment;
+      openDrill({
+        title: "Rejection · " + c,
+        sub: "Daily occurrences and enterprises linked to this comment",
+        rows: rejCommentBreakdown(c),
+        columns: rejCommentColumns(),
+      });
     });
+  });
+}
 
-    const today = new Date();
-    const month = new Date(today.getFullYear(), today.getMonth(), 1);
-    $('dateFrom').valueAsDate = month;
-    $('dateTo').valueAsDate = today;
+/* =========================================================
+   DRILL-DOWN BREAKDOWNS
+========================================================= */
+function enterpriseTeamColumns() {
+  return [
+    { key: "enterprise_name", label: "Enterprise" },
+    { key: "team_name", label: "Team" },
+    { key: "images", label: "Images", num: true },
+    { key: "edited", label: "Edited", num: true },
+    { key: "editPct", label: "Edit %", num: true, render: (v) => v.toFixed(1) + "%" },
+  ];
+}
+function enterpriseTeamBreakdown(rows) {
+  const map = new Map();
+  for (const r of rows) {
+    const k = r.enterprise_name + "||" + r.team_name;
+    if (!map.has(k)) map.set(k, { enterprise_name: r.enterprise_name, team_name: r.team_name, images: 0, edited: 0, _rows: [] });
+    const o = map.get(k);
+    o.images += r.unique_images;
+    o.edited += r.edited_images;
+    o._rows.push(r);
+  }
+  return Array.from(map.values()).map((o) => ({
+    ...o,
+    editPct: o.images > 0 ? (o.edited / o.images) * 100 : 0,
+    _onClick: () => openDrill({
+      title: o.team_name + " · " + o.enterprise_name,
+      sub: "Daily activity for this team",
+      rows: dailyTeamBreakdown(o._rows),
+      columns: dailyTeamColumns(),
+    }),
+  })).sort((a, b) => b.images - a.images);
+}
 
-    const theme = localStorage.getItem('theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', theme);
-    $('themeToggle').textContent = theme === 'dark' ? '🌙' : '☀️';
+function dailyTeamColumns() {
+  return [
+    { key: "createdDate", label: "Date" },
+    { key: "images", label: "Images", num: true },
+    { key: "edited", label: "Edited", num: true },
+    { key: "skus", label: "SKUs", num: true },
+    { key: "comments", label: "Rejection comments" },
+  ];
+}
+function dailyTeamBreakdown(rows) {
+  return rows.map((r) => ({
+    createdDate: r.createdDate,
+    images: r.unique_images,
+    edited: r.edited_images,
+    skus: r.unique_sku_count,
+    comments: renderCommentChips(r.rejected_comments_array),
+    _onClick: () => openDrill({
+      title: r.team_name + " · " + r.createdDate,
+      sub: r.enterprise_name + " · " + r.account_type,
+      rows: [{
+        date: r.createdDate,
+        images: r.unique_images,
+        edited: r.edited_images,
+        skus: r.unique_sku_count,
+        edited_ids: renderIdChips(r.edited_image_ids),
+        comments: renderCommentChips(r.rejected_comments_array),
+      }],
+      columns: [
+        { key: "date", label: "Date" },
+        { key: "images", label: "Images", num: true },
+        { key: "edited", label: "Edited", num: true },
+        { key: "skus", label: "SKUs", num: true },
+        { key: "edited_ids", label: "Edited image IDs" },
+        { key: "comments", label: "Rejection comments" },
+      ],
+      html: true,
+    }),
+  }));
+}
 
-    setInterval(fetchData, 2 * 60 * 60 * 1000);
-    fetchData();
-  </script>
+function rejCommentColumns() {
+  return [
+    { key: "date", label: "Date" },
+    { key: "count", label: "Count", num: true },
+    { key: "enterprises", label: "Enterprises with this comment" },
+    { key: "ids", label: "Edited image IDs" },
+  ];
+}
+function rejCommentBreakdown(comment) {
+  // join rejected rows with main rows by date, to find enterprises + image IDs that
+  // had this comment on that day.
+  const out = [];
+  const byDate = new Map();
+  for (const r of state.filteredRej) {
+    if (r.rejected_comment !== comment) continue;
+    if (!byDate.has(r.createdDate)) byDate.set(r.createdDate, 0);
+    byDate.set(r.createdDate, byDate.get(r.createdDate) + r.edited_images);
+  }
+  for (const [date, count] of byDate.entries()) {
+    const mainRowsThatDay = state.filtered.filter((r) =>
+      r.createdDate === date && r.rejected_comments_array.includes(comment)
+    );
+    const enterprises = distinct(mainRowsThatDay.map((r) => r.enterprise_name));
+    const ids = [];
+    for (const r of mainRowsThatDay) ids.push(...r.edited_image_ids);
+    out.push({
+      date,
+      count,
+      enterprises: enterprises.map((e) => `<span class="id-chip">${escapeHtml(e)}</span>`).join("") || '<span class="muted">—</span>',
+      ids: renderIdChips(distinct(ids)),
+    });
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/* helpers for chip rendering */
+function renderIdChips(ids) {
+  if (!ids || ids.length === 0) return '<span class="muted">—</span>';
+  const max = 10;
+  const shown = ids.slice(0, max);
+  const more = ids.length - max;
+  let html = shown.map((id) => `<span class="id-chip">${escapeHtml(id)}</span>`).join("");
+  if (more > 0) html += `<span class="id-chip more" title="${ids.length} total">+${more} more</span>`;
+  return `<div class="tag-strip">${html}</div>`;
+}
+function renderCommentChips(comments) {
+  if (!comments || comments.length === 0) return '<span class="muted">—</span>';
+  const max = 6;
+  const shown = comments.slice(0, max);
+  const more = comments.length - max;
+  let html = shown.map((c) => `<span class="comment-chip">${escapeHtml(c)}</span>`).join("");
+  if (more > 0) html += `<span class="comment-chip">+${more}</span>`;
+  return `<div class="tag-strip">${html}</div>`;
+}
+
+/* =========================================================
+   KPI DRILL HANDLERS
+========================================================= */
+document.querySelectorAll(".kpi").forEach((el) => {
+  el.addEventListener("click", () => {
+    const kind = el.dataset.drill;
+    if (kind === "enterprises") kpiEnterpriseDrill();
+    else if (kind === "teams") kpiTeamDrill();
+    else if (kind === "images") kpiImagesDrill();
+    else if (kind === "edits") kpiEditsDrill();
+    else if (kind === "skus") kpiSkusDrill();
+    else if (kind === "ai") kpiAiDrill();
+  });
+});
+
+function kpiEnterpriseDrill() {
+  const map = new Map();
+  for (const r of state.filtered) {
+    const k = r.enterprise_id + "||" + r.enterprise_name;
+    if (!map.has(k)) map.set(k, { enterprise_id: r.enterprise_id, enterprise_name: r.enterprise_name, images: 0, edited: 0, skus: 0, teams: new Set(), _rows: [] });
+    const o = map.get(k);
+    o.images += r.unique_images;
+    o.edited += r.edited_images;
+    o.skus += r.unique_sku_count;
+    o.teams.add(r.team_id || r.team_name);
+    o._rows.push(r);
+  }
+  const rows = Array.from(map.values()).map((o) => ({
+    enterprise_name: o.enterprise_name,
+    enterprise_id: o.enterprise_id || "—",
+    teams: o.teams.size,
+    images: o.images,
+    edited: o.edited,
+    skus: o.skus,
+    editPct: o.images > 0 ? (o.edited / o.images) * 100 : 0,
+    _onClick: () => openDrill({
+      title: o.enterprise_name,
+      sub: "Team breakdown",
+      rows: enterpriseTeamBreakdown(o._rows),
+      columns: enterpriseTeamColumns(),
+    }),
+  })).sort((a, b) => b.images - a.images);
+
+  openDrill({
+    title: "Enterprises in range",
+    sub: rows.length + " active · click an enterprise to see teams",
+    rows,
+    columns: [
+      { key: "enterprise_name", label: "Enterprise" },
+      { key: "enterprise_id", label: "ID" },
+      { key: "teams", label: "Teams", num: true },
+      { key: "images", label: "Images", num: true },
+      { key: "edited", label: "Edited", num: true },
+      { key: "skus", label: "SKUs", num: true },
+      { key: "editPct", label: "Edit %", num: true, render: (v) => v.toFixed(1) + "%" },
+    ],
+  });
+}
+
+function kpiTeamDrill() {
+  const map = new Map();
+  for (const r of state.filtered) {
+    const k = r.team_id + "||" + r.team_name;
+    if (!map.has(k)) map.set(k, { team_id: r.team_id, team_name: r.team_name, enterprise_name: r.enterprise_name, account_type: r.account_type, images: 0, edited: 0, skus: 0, _rows: [] });
+    const o = map.get(k);
+    o.images += r.unique_images;
+    o.edited += r.edited_images;
+    o.skus += r.unique_sku_count;
+    o._rows.push(r);
+  }
+  const rows = Array.from(map.values()).map((o) => ({
+    team_name: o.team_name,
+    team_id: o.team_id || "—",
+    enterprise_name: o.enterprise_name,
+    account_type: o.account_type,
+    images: o.images,
+    edited: o.edited,
+    skus: o.skus,
+    editPct: o.images > 0 ? (o.edited / o.images) * 100 : 0,
+    _onClick: () => openDrill({
+      title: o.team_name,
+      sub: o.enterprise_name + " · daily activity",
+      rows: dailyTeamBreakdown(o._rows),
+      columns: dailyTeamColumns(),
+      html: true,
+    }),
+  })).sort((a, b) => b.images - a.images);
+
+  openDrill({
+    title: "Teams in range",
+    sub: rows.length + " active · click team for daily details",
+    rows,
+    columns: [
+      { key: "team_name", label: "Team" },
+      { key: "team_id", label: "Team ID" },
+      { key: "enterprise_name", label: "Enterprise" },
+      { key: "account_type", label: "Account type" },
+      { key: "images", label: "Images", num: true },
+      { key: "edited", label: "Edited", num: true },
+      { key: "skus", label: "SKUs", num: true },
+      { key: "editPct", label: "Edit %", num: true, render: (v) => v.toFixed(1) + "%" },
+    ],
+  });
+}
+
+function kpiImagesDrill() {
+  // by team, show edited IDs and rejection comments
+  const map = new Map();
+  for (const r of state.filtered) {
+    const k = r.team_id + "||" + r.team_name;
+    if (!map.has(k)) map.set(k, { team_name: r.team_name, enterprise_name: r.enterprise_name, images: 0, edited: 0, ids: [], comments: [] });
+    const o = map.get(k);
+    o.images += r.unique_images;
+    o.edited += r.edited_images;
+    o.ids.push(...r.edited_image_ids);
+    o.comments.push(...r.rejected_comments_array);
+  }
+  const rows = Array.from(map.values()).map((o) => ({
+    team_name: o.team_name,
+    enterprise_name: o.enterprise_name,
+    images: o.images,
+    edited: o.edited,
+    edited_ids: renderIdChips(distinct(o.ids)),
+    comments: renderCommentChips(distinct(o.comments)),
+  })).sort((a, b) => b.images - a.images);
+
+  openDrill({
+    title: "Image volume by team",
+    sub: "Each row shows edited image IDs and rejection comments",
+    rows,
+    columns: [
+      { key: "team_name", label: "Team" },
+      { key: "enterprise_name", label: "Enterprise" },
+      { key: "images", label: "Images", num: true },
+      { key: "edited", label: "Edited", num: true },
+      { key: "edited_ids", label: "Edited image IDs" },
+      { key: "comments", label: "Rejection comments" },
+    ],
+    html: true,
+  });
+}
+
+function kpiEditsDrill() {
+  // by enterprise/team, ranked by edit count
+  const map = new Map();
+  for (const r of state.filtered) {
+    const k = r.enterprise_name + "||" + r.team_name;
+    if (!map.has(k)) map.set(k, { team_name: r.team_name, enterprise_name: r.enterprise_name, edited: 0, images: 0, ids: [], comments: [] });
+    const o = map.get(k);
+    o.edited += r.edited_images;
+    o.images += r.unique_images;
+    o.ids.push(...r.edited_image_ids);
+    o.comments.push(...r.rejected_comments_array);
+  }
+  const rows = Array.from(map.values()).filter((o) => o.edited > 0).map((o) => ({
+    team_name: o.team_name,
+    enterprise_name: o.enterprise_name,
+    edited: o.edited,
+    images: o.images,
+    editPct: o.images > 0 ? (o.edited / o.images) * 100 : 0,
+    edited_ids: renderIdChips(distinct(o.ids)),
+    comments: renderCommentChips(distinct(o.comments)),
+  })).sort((a, b) => b.edited - a.edited);
+
+  openDrill({
+    title: "Edited images breakdown",
+    sub: "Teams ranked by edits · with image IDs and rejection comments",
+    rows,
+    columns: [
+      { key: "team_name", label: "Team" },
+      { key: "enterprise_name", label: "Enterprise" },
+      { key: "edited", label: "Edited", num: true },
+      { key: "images", label: "Total", num: true },
+      { key: "editPct", label: "Edit %", num: true, render: (v) => v.toFixed(1) + "%" },
+      { key: "edited_ids", label: "Image IDs" },
+      { key: "comments", label: "Comments" },
+    ],
+    html: true,
+  });
+}
+
+function kpiSkusDrill() {
+  const map = new Map();
+  for (const r of state.filtered) {
+    const k = r.team_id + "||" + r.team_name;
+    if (!map.has(k)) map.set(k, { team_name: r.team_name, enterprise_name: r.enterprise_name, skus: 0, images: 0, edited: 0, ids: [], comments: [] });
+    const o = map.get(k);
+    o.skus += r.unique_sku_count;
+    o.images += r.unique_images;
+    o.edited += r.edited_images;
+    o.ids.push(...r.edited_image_ids);
+    o.comments.push(...r.rejected_comments_array);
+  }
+  const rows = Array.from(map.values()).map((o) => ({
+    team_name: o.team_name,
+    enterprise_name: o.enterprise_name,
+    skus: o.skus,
+    images: o.images,
+    edited: o.edited,
+    edited_ids: renderIdChips(distinct(o.ids)),
+    comments: renderCommentChips(distinct(o.comments)),
+  })).sort((a, b) => b.skus - a.skus);
+
+  openDrill({
+    title: "SKU coverage by team",
+    sub: "Each row links to edited image IDs and rejection comments",
+    rows,
+    columns: [
+      { key: "team_name", label: "Team" },
+      { key: "enterprise_name", label: "Enterprise" },
+      { key: "skus", label: "SKUs", num: true },
+      { key: "images", label: "Images", num: true },
+      { key: "edited", label: "Edited", num: true },
+      { key: "edited_ids", label: "Image IDs" },
+      { key: "comments", label: "Comments" },
+    ],
+    html: true,
+  });
+}
+
+function kpiAiDrill() {
+  // worst-performing teams by edit rate (with min images threshold)
+  const map = new Map();
+  for (const r of state.filtered) {
+    const k = r.team_id + "||" + r.team_name;
+    if (!map.has(k)) map.set(k, { team_name: r.team_name, enterprise_name: r.enterprise_name, images: 0, edited: 0 });
+    const o = map.get(k);
+    o.images += r.unique_images;
+    o.edited += r.edited_images;
+  }
+  const rows = Array.from(map.values()).filter((o) => o.images >= 10).map((o) => ({
+    team_name: o.team_name,
+    enterprise_name: o.enterprise_name,
+    images: o.images,
+    edited: o.edited,
+    ai: o.images > 0 ? (1 - o.edited / o.images) * 100 : 100,
+    editPct: o.images > 0 ? (o.edited / o.images) * 100 : 0,
+  })).sort((a, b) => a.ai - b.ai);
+
+  openDrill({
+    title: "AI accuracy by team",
+    sub: "Lowest accuracy first · min 10 images",
+    rows,
+    columns: [
+      { key: "team_name", label: "Team" },
+      { key: "enterprise_name", label: "Enterprise" },
+      { key: "images", label: "Images", num: true },
+      { key: "edited", label: "Edited", num: true },
+      { key: "editPct", label: "Edit %", num: true, render: (v) => v.toFixed(1) + "%" },
+      { key: "ai", label: "AI %", num: true, render: (v) => v.toFixed(1) + "%" },
+    ],
+  });
+}
+
+/* =========================================================
+   MODAL
+========================================================= */
+const modal = document.getElementById("modal");
+const modalTitle = document.getElementById("modalTitle");
+const modalSub = document.getElementById("modalSub");
+const modalBody = document.getElementById("modalBody");
+const modalCount = document.getElementById("modalCount");
+const modalSearch = document.getElementById("modalSearch");
+let modalState = { rows: [], columns: [], sortKey: null, sortDir: 1, search: "", html: false };
+
+function openDrill({ title, sub, rows, columns, html }) {
+  modalState = { rows, columns, sortKey: null, sortDir: 1, search: "", html: !!html };
+  modalTitle.textContent = title;
+  modalSub.textContent = sub || "";
+  modalSearch.value = "";
+  renderModalTable();
+  modal.classList.add("show");
+  document.body.style.overflow = "hidden";
+}
+function closeModal() {
+  modal.classList.remove("show");
+  document.body.style.overflow = "";
+}
+document.getElementById("modalClose").addEventListener("click", closeModal);
+modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && modal.classList.contains("show")) closeModal(); });
+
+modalSearch.addEventListener("input", (e) => {
+  modalState.search = e.target.value.toLowerCase();
+  renderModalTable();
+});
+
+function renderModalTable() {
+  const { rows, columns, sortKey, sortDir, search } = modalState;
+
+  let filtered = rows;
+  if (search) {
+    filtered = rows.filter((r) =>
+      columns.some((c) => {
+        const v = r[c.key];
+        return v != null && String(v).toLowerCase().includes(search);
+      })
+    );
+  }
+
+  if (sortKey) {
+    filtered = [...filtered].sort((a, b) => {
+      const av = a[sortKey];
+      const bv = b[sortKey];
+      if (typeof av === "number" && typeof bv === "number") return (av - bv) * sortDir;
+      return String(av || "").localeCompare(String(bv || "")) * sortDir;
+    });
+  }
+
+  modalCount.textContent = filtered.length + " row" + (filtered.length !== 1 ? "s" : "");
+
+  const head = "<thead><tr>" + columns.map((c) => `
+    <th data-key="${c.key}" class="${c.key === sortKey ? "sorted" : ""}">
+      ${escapeHtml(c.label)}<span class="sort-arrow">${c.key === sortKey ? (sortDir > 0 ? "↑" : "↓") : "↕"}</span>
+    </th>
+  `).join("") + "</tr></thead>";
+
+  const body = "<tbody>" + (filtered.length === 0
+    ? `<tr><td colspan="${columns.length}" class="empty">No matches</td></tr>`
+    : filtered.map((r, i) => "<tr data-i='" + i + "'>" + columns.map((c) => {
+        const raw = r[c.key];
+        const v = c.render ? c.render(raw) : raw;
+        const isHtmlCell = c.key.includes("ids") || c.key.includes("comments") || c.key === "enterprises" || c.key === "edited_ids";
+        const looksLikeChips = typeof v === "string" && (v.indexOf('class="id-chip"') !== -1 || v.indexOf('class="comment-chip"') !== -1 || v.indexOf('class="tag-strip"') !== -1 || v.indexOf('class="muted"') !== -1);
+        return `<td class="${c.num ? "num" : ""}">${(modalState.html && isHtmlCell) || looksLikeChips ? (v ?? "") : escapeHtml(v == null ? "—" : String(v))}</td>`;
+      }).join("") + "</tr>").join("")
+  ) + "</tbody>";
+
+  // totals row for numeric cols if rows have plain numbers
+  let foot = "";
+  const numericKeys = columns.filter((c) => c.num && filtered.every((r) => typeof r[c.key] === "number")).map((c) => c.key);
+  if (numericKeys.length && filtered.length > 1) {
+    foot = "<tfoot><tr>" + columns.map((c) => {
+      if (!c.num) return `<td>${c === columns[0] ? "Total" : ""}</td>`;
+      if (numericKeys.includes(c.key)) {
+        const sum = filtered.reduce((s, r) => s + (r[c.key] || 0), 0);
+        return `<td class="num">${c.key.includes("Pct") || c.key === "editPct" || c.key === "ai" ? "—" : fmtInt(sum)}</td>`;
+      }
+      return `<td></td>`;
+    }).join("") + "</tr></tfoot>";
+  }
+
+  modalBody.innerHTML = `<table class="data">${head}${body}${foot}</table>`;
+
+  // sort handlers
+  modalBody.querySelectorAll("th[data-key]").forEach((th) => {
+    th.addEventListener("click", () => {
+      const k = th.dataset.key;
+      if (modalState.sortKey === k) modalState.sortDir *= -1;
+      else { modalState.sortKey = k; modalState.sortDir = 1; }
+      renderModalTable();
+    });
+  });
+
+  // row clicks (if rows have _onClick handlers)
+  modalBody.querySelectorAll("tbody tr[data-i]").forEach((tr) => {
+    const i = Number(tr.dataset.i);
+    const r = filtered[i];
+    if (r && typeof r._onClick === "function") {
+      tr.style.cursor = "pointer";
+      tr.addEventListener("click", (e) => {
+        if (e.target.classList.contains("id-chip") || e.target.classList.contains("comment-chip")) return;
+        r._onClick();
+      });
+    }
+  });
+}
+
+/* =========================================================
+   CHART STYLES
+========================================================= */
+function axisStyle(opts = {}) {
+  return {
+    type: opts.type,
+    stacked: opts.stacked || false,
+    position: opts.position || undefined,
+    min: opts.min,
+    max: opts.max,
+    grid: opts.grid === false ? { display: false } : { color: cssVar("--grid"), drawBorder: false },
+    ticks: {
+      color: cssVar("--ink-soft"),
+      font: { family: "JetBrains Mono", size: 10 },
+      maxRotation: 0,
+      autoSkip: true,
+      maxTicksLimit: 10,
+    },
+    border: { display: false },
+    title: opts.title ? {
+      display: true,
+      text: opts.title,
+      color: cssVar("--ink-soft"),
+      font: { family: "JetBrains Mono", size: 10, weight: "500" },
+    } : undefined,
+  };
+}
+function tooltipStyle(opts = {}) {
+  return {
+    backgroundColor: cssVar("--bg-elev"),
+    titleColor: cssVar("--ink"),
+    bodyColor: cssVar("--ink-muted"),
+    borderColor: cssVar("--border"),
+    borderWidth: 1,
+    padding: 12,
+    cornerRadius: 8,
+    titleFont: { family: "Inter Tight", size: 12, weight: "600" },
+    bodyFont: { family: "Inter Tight", size: 12 },
+    boxPadding: 4,
+    usePointStyle: true,
+    callbacks: opts.titleCb ? { title: opts.titleCb } : {},
+  };
+}
+
+/* =========================================================
+   FILTERS / PRESETS / TIMER
+========================================================= */
+["dateFrom","dateTo","filterEnterprise","filterTeam","filterAccount"].forEach((id) => {
+  document.getElementById(id).addEventListener("change", () => {
+    document.querySelectorAll(".preset").forEach((b) => b.classList.remove("active"));
+    renderAll();
+  });
+});
+
+document.querySelectorAll(".preset").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".preset").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    const range = btn.dataset.range;
+    if (range === "all") {
+      document.getElementById("dateFrom").value = state.dateMin || "";
+      document.getElementById("dateTo").value = state.dateMax || "";
+    } else {
+      const days = Number(range);
+      const to = state.dateMax || todayISO();
+      const from = addDays(to, -(days - 1));
+      document.getElementById("dateFrom").value = from < state.dateMin ? state.dateMin : from;
+      document.getElementById("dateTo").value = to;
+    }
+    renderAll();
+  });
+});
+
+document.getElementById("refreshBtn").addEventListener("click", () => load({ bust: true }));
+
+// segments
+document.querySelectorAll("#trendSeg button").forEach((b) => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll("#trendSeg button").forEach((x) => x.classList.remove("active"));
+    b.classList.add("active");
+    state.trendMode = b.dataset.mode;
+    renderTrendChart();
+  });
+});
+document.querySelectorAll("#rejSeg button").forEach((b) => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll("#rejSeg button").forEach((x) => x.classList.remove("active"));
+    b.classList.add("active");
+    state.rejMode = b.dataset.mode;
+    renderRejectedTrend();
+    renderRejectedTopTable();
+  });
+});
+
+/* timer */
+const timerPill = document.getElementById("timerPill");
+const timerText = document.getElementById("timerText");
+
+function setTimerState(s) {
+  timerPill.classList.remove("refreshing", "stale");
+  if (s === "refreshing") timerPill.classList.add("refreshing");
+  if (s === "stale") timerPill.classList.add("stale");
+}
+
+function tickTimer() {
+  if (!state.nextRefreshAt) { timerText.textContent = "--:--"; return; }
+  const ms = state.nextRefreshAt - new Date();
+  if (ms <= 0) {
+    timerText.textContent = "00:00";
+    load({ silent: true });
+    return;
+  }
+  const totalSec = Math.floor(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  timerText.textContent = String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+  if (m < 5) timerPill.classList.add("stale"); else timerPill.classList.remove("stale");
+}
+setInterval(tickTimer, TIMER_TICK_MS);
+
+/* =========================================================
+   LOADING SKELETON
+========================================================= */
+function showSkeletons() {
+  ["kpiEnterprises","kpiTeams","kpiImages","kpiEdits","kpiSkus","kpiAi"].forEach((id) => {
+    document.getElementById(id).innerHTML = '<span class="skeleton" style="display:inline-block;width:80px;height:38px"></span>';
+  });
+}
+
+/* =========================================================
+   GO
+========================================================= */
+load();
+</script>
 </body>
 </html>
