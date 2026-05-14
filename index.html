@@ -368,6 +368,7 @@ table.data th {
   user-select: none;
   white-space: nowrap;
 }
+table.data th.num { text-align: right; }
 table.data th:hover { color: var(--accent); }
 table.data th .sort-arrow {
   display: inline-block;
@@ -735,11 +736,11 @@ footer.footnote {
         <table class="data" id="tableTopTeams">
           <thead>
             <tr>
-              <th>Team</th>
-              <th>Enterprise</th>
-              <th class="num">Images</th>
-              <th class="num">Edited</th>
-              <th class="num">Edit %</th>
+              <th data-sort="team_name">Team<span class="sort-arrow">↕</span></th>
+              <th data-sort="enterprise_name">Enterprise<span class="sort-arrow">↕</span></th>
+              <th class="num sorted" data-sort="images">Images<span class="sort-arrow">↓</span></th>
+              <th class="num" data-sort="edited">Edited<span class="sort-arrow">↕</span></th>
+              <th class="num" data-sort="editPct">Edit %<span class="sort-arrow">↕</span></th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -753,7 +754,7 @@ footer.footnote {
     <div class="panel-head">
       <div>
         <h2>Rejection feedback trend</h2>
-        <div class="desc">Top rejection comments over time · click line for breakdown</div>
+        <div class="desc" id="rejDesc">Top rejection comments over time · click line for breakdown</div>
       </div>
       <div class="seg" id="rejSeg">
         <button class="active" data-mode="trend">Trend</button>
@@ -1008,11 +1009,29 @@ function applyFilters() {
     return true;
   });
 
-  state.filteredRej = state.rejected.filter((r) => {
-    if (from && r.createdDate < from) return false;
-    if (to && r.createdDate > to) return false;
-    return true;
-  });
+  // Rejection trend source:
+  // - If any non-date filter is active, derive from main query's rejected_comments_array
+  //   (so we can scope by enterprise / team / account)
+  // - Otherwise use the dedicated rejected query (more authoritative, has volume)
+  const hasNonDateFilter = !!(ent || tm || acc);
+  state.rejFromMain = hasNonDateFilter;
+
+  if (hasNonDateFilter) {
+    // Build synthetic rejected rows from state.filtered
+    const synth = [];
+    for (const r of state.filtered) {
+      for (const c of r.rejected_comments_array) {
+        synth.push({ createdDate: r.createdDate, rejected_comment: c, edited_images: 1 });
+      }
+    }
+    state.filteredRej = synth;
+  } else {
+    state.filteredRej = state.rejected.filter((r) => {
+      if (from && r.createdDate < from) return false;
+      if (to && r.createdDate > to) return false;
+      return true;
+    });
+  }
 }
 
 function renderAll() {
@@ -1124,12 +1143,51 @@ function renderTrendChart() {
     });
   }
 
+  // Custom plugin to draw labels above AI accuracy line points
+  const labelPlugin = {
+    id: "trendLineLabels",
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      chart.data.datasets.forEach((ds, di) => {
+        if (ds.type !== "line") return;
+        const meta = chart.getDatasetMeta(di);
+        if (!meta || meta.hidden) return;
+        ctx.save();
+        ctx.font = "600 10px 'JetBrains Mono', monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        ctx.fillStyle = cssVar("--ink");
+        meta.data.forEach((point, i) => {
+          const v = ds.data[i];
+          if (v == null || isNaN(v)) return;
+          const txt = v.toFixed(1) + "%";
+          const x = point.x;
+          const y = point.y - 8;
+          // background pill
+          const w = ctx.measureText(txt).width + 8;
+          const h = 14;
+          ctx.fillStyle = cssVar("--bg-elev");
+          ctx.strokeStyle = cssVar("--border");
+          ctx.lineWidth = 1;
+          roundRect(ctx, x - w / 2, y - h, w, h, 4);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = cssVar("--ink");
+          ctx.fillText(txt, x, y - 2);
+        });
+        ctx.restore();
+      });
+    },
+  };
+
   state.charts.trend = new Chart(ctx, {
     data: { labels, datasets },
+    plugins: [labelPlugin],
     options: {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
+      layout: { padding: { top: 22 } },
       plugins: {
         legend: { position: "bottom", labels: { color: cssVar("--ink-muted"), font: { family: "Inter Tight", size: 12 }, usePointStyle: true, padding: 16 } },
         tooltip: tooltipStyle(),
@@ -1141,6 +1199,20 @@ function renderTrendChart() {
       },
     },
   });
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
 }
 
 /* ---------- ACCOUNT TYPE STACKED AREA ---------- */
@@ -1201,6 +1273,9 @@ function renderAccountChart() {
 }
 
 /* ---------- TOP TEAMS TABLE ---------- */
+// Top teams sort state — default sort by images desc
+const topTeamsSort = { key: "images", dir: -1 };
+
 function renderTopTeamsTable() {
   const map = new Map();
   for (const r of state.filtered) {
@@ -1211,9 +1286,27 @@ function renderTopTeamsTable() {
     o.edited += r.edited_images;
     o.rows.push(r);
   }
-  const rows = Array.from(map.values())
-    .sort((a, b) => b.images - a.images)
-    .slice(0, 10);
+  let rows = Array.from(map.values()).map((r) => ({
+    ...r,
+    editPct: r.images > 0 ? (r.edited / r.images) * 100 : 0,
+  }));
+
+  // sort
+  const { key, dir } = topTeamsSort;
+  rows.sort((a, b) => {
+    const av = a[key], bv = b[key];
+    if (typeof av === "number" && typeof bv === "number") return (av - bv) * dir;
+    return String(av || "").localeCompare(String(bv || "")) * dir;
+  });
+  rows = rows.slice(0, 10);
+
+  // update header indicators
+  document.querySelectorAll("#tableTopTeams th[data-sort]").forEach((th) => {
+    const k = th.dataset.sort;
+    th.classList.toggle("sorted", k === key);
+    const arrow = th.querySelector(".sort-arrow");
+    if (arrow) arrow.textContent = k === key ? (dir > 0 ? "↑" : "↓") : "↕";
+  });
 
   const tbody = document.querySelector("#tableTopTeams tbody");
   tbody.innerHTML = rows.map((r) => `
@@ -1222,7 +1315,7 @@ function renderTopTeamsTable() {
       <td>${escapeHtml(r.enterprise_name)}</td>
       <td class="num">${fmtInt(r.images)}</td>
       <td class="num">${fmtInt(r.edited)}</td>
-      <td class="num">${r.images > 0 ? ((r.edited / r.images) * 100).toFixed(1) : "0"}%</td>
+      <td class="num">${r.editPct.toFixed(1)}%</td>
     </tr>
   `).join("") || `<tr><td colspan="5" class="empty">No data in this range</td></tr>`;
 
@@ -1240,6 +1333,16 @@ function renderTopTeamsTable() {
   });
 }
 
+// Attach header click handlers once
+document.querySelectorAll("#tableTopTeams th[data-sort]").forEach((th) => {
+  th.addEventListener("click", () => {
+    const k = th.dataset.sort;
+    if (topTeamsSort.key === k) topTeamsSort.dir *= -1;
+    else { topTeamsSort.key = k; topTeamsSort.dir = (k === "images" || k === "edited" || k === "editPct") ? -1 : 1; }
+    renderTopTeamsTable();
+  });
+});
+
 /* ---------- REJECTED COMMENTS TREND ---------- */
 function topRejected(n = 5) {
   const counts = new Map();
@@ -1255,6 +1358,21 @@ function topRejected(n = 5) {
 function renderRejectedTrend() {
   document.getElementById("rejTrendWrap").style.display = state.rejMode === "trend" ? "" : "none";
   document.getElementById("rejTopWrap").style.display = state.rejMode === "top" ? "" : "none";
+
+  // Update description to reflect filter state
+  const desc = document.getElementById("rejDesc");
+  if (desc) {
+    const ent = document.getElementById("filterEnterprise").value;
+    const tm = document.getElementById("filterTeam").value;
+    const acc = document.getElementById("filterAccount").value;
+    const filters = [ent, tm, acc].filter(Boolean);
+    if (filters.length) {
+      desc.textContent = "Scoped to " + filters.join(" · ") + " · click line for date breakdown";
+    } else {
+      desc.textContent = "Top rejection comments over time · click line for date breakdown";
+    }
+  }
+
   if (state.rejMode !== "trend") return;
 
   const ctx = document.getElementById("chartRejTrend").getContext("2d");
@@ -1423,20 +1541,19 @@ function rejCommentColumns() {
   return [
     { key: "date", label: "Date" },
     { key: "count", label: "Count", num: true },
-    { key: "enterprises", label: "Enterprises with this comment" },
-    { key: "ids", label: "Edited image IDs" },
+    { key: "enterprises_count", label: "Enterprises", num: true },
+    { key: "images_count", label: "Image IDs", num: true },
   ];
 }
 function rejCommentBreakdown(comment) {
-  // join rejected rows with main rows by date, to find enterprises + image IDs that
-  // had this comment on that day.
-  const out = [];
+  // Step 1 of drill: per-date counts only. Clicking a row opens step 2.
   const byDate = new Map();
   for (const r of state.filteredRej) {
     if (r.rejected_comment !== comment) continue;
     if (!byDate.has(r.createdDate)) byDate.set(r.createdDate, 0);
     byDate.set(r.createdDate, byDate.get(r.createdDate) + r.edited_images);
   }
+  const out = [];
   for (const [date, count] of byDate.entries()) {
     const mainRowsThatDay = state.filtered.filter((r) =>
       r.createdDate === date && r.rejected_comments_array.includes(comment)
@@ -1444,14 +1561,64 @@ function rejCommentBreakdown(comment) {
     const enterprises = distinct(mainRowsThatDay.map((r) => r.enterprise_name));
     const ids = [];
     for (const r of mainRowsThatDay) ids.push(...r.edited_image_ids);
+    const idsDistinct = distinct(ids);
     out.push({
       date,
       count,
-      enterprises: enterprises.map((e) => `<span class="id-chip">${escapeHtml(e)}</span>`).join("") || '<span class="muted">—</span>',
-      ids: renderIdChips(distinct(ids)),
+      enterprises_count: enterprises.length,
+      images_count: idsDistinct.length,
+      _onClick: () => openRejDateDetail(comment, date, mainRowsThatDay),
     });
   }
   return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// Step 2: clicking a date in rejection drill — show enterprise × image_id × comment list
+function openRejDateDetail(comment, date, mainRowsThatDay) {
+  // Build one row per (enterprise, image_id) pair on this date for this comment.
+  // Image IDs come from edited_image_ids of main rows that had this comment that day.
+  const rows = [];
+  for (const r of mainRowsThatDay) {
+    if (!r.edited_image_ids.length) {
+      // No image IDs — still show an aggregate row so the enterprise is visible
+      rows.push({
+        enterprise_name: r.enterprise_name,
+        team_name: r.team_name,
+        image_id: "—",
+        rejected_comment: comment,
+      });
+      continue;
+    }
+    for (const id of r.edited_image_ids) {
+      rows.push({
+        enterprise_name: r.enterprise_name,
+        team_name: r.team_name,
+        image_id: id,
+        rejected_comment: comment,
+      });
+    }
+  }
+  // Dedupe identical rows
+  const seen = new Set();
+  const deduped = rows.filter((r) => {
+    const k = r.enterprise_name + "|" + r.team_name + "|" + r.image_id;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+
+  openDrill({
+    title: date + " · " + (comment.length > 60 ? comment.slice(0, 60) + "…" : comment),
+    sub: deduped.length + " image" + (deduped.length !== 1 ? "s" : "") + " · " +
+         distinct(deduped.map((r) => r.enterprise_name)).length + " enterprise(s)",
+    rows: deduped,
+    columns: [
+      { key: "enterprise_name", label: "Enterprise" },
+      { key: "team_name", label: "Team" },
+      { key: "image_id", label: "Image ID" },
+      { key: "rejected_comment", label: "Rejected comment" },
+    ],
+  });
 }
 
 /* helpers for chip rendering */
@@ -1786,7 +1953,7 @@ function renderModalTable() {
   modalCount.textContent = filtered.length + " row" + (filtered.length !== 1 ? "s" : "");
 
   const head = "<thead><tr>" + columns.map((c) => `
-    <th data-key="${c.key}" class="${c.key === sortKey ? "sorted" : ""}">
+    <th data-key="${c.key}" class="${c.num ? "num " : ""}${c.key === sortKey ? "sorted" : ""}">
       ${escapeHtml(c.label)}<span class="sort-arrow">${c.key === sortKey ? (sortDir > 0 ? "↑" : "↓") : "↕"}</span>
     </th>
   `).join("") + "</tr></thead>";
