@@ -6,6 +6,8 @@ const MAIN_URL =
   "https://metabase.spyne.ai/public/question/a594963c-2ba3-4348-b305-cbf98d64fa45.csv";
 const REJECTED_URL =
   "https://metabase.spyne.ai/public/question/486ace1a-801e-49b8-861a-416c02bda1ab.csv";
+const DETAILS_URL =
+  "https://metabase.spyne.ai/public/question/4d24258e-26ef-415c-94ba-6c3ea91d75c8.csv";
 
 const CACHE_HEADER = "public, s-maxage=3600, stale-while-revalidate=1800";
 const FETCH_TIMEOUT_MS = 55_000;
@@ -119,9 +121,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    const [main, rejected] = await Promise.all([
+    const [main, rejected, details] = await Promise.all([
       fetchCSV(MAIN_URL),
       fetchCSV(REJECTED_URL),
+      fetchCSV(DETAILS_URL),
     ]);
 
     res.setHeader("Cache-Control", CACHE_HEADER);
@@ -131,8 +134,10 @@ export default async function handler(req, res) {
       fetchedAt: new Date().toISOString(),
       mainCount: main.length,
       rejectedCount: rejected.length,
+      detailsCount: details.length,
       main,
       rejected,
+      details,
     });
   } catch (err) {
     res.status(502).json({
