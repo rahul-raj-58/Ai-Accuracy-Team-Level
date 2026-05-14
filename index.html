@@ -817,8 +817,10 @@ const LS_THEME = "spyne_theme_v1";
 const state = {
   main: [],          // full rows from main question
   rejected: [],      // full rows from rejected comments question
+  details: [],       // full rows from per-image details question (new)
   filtered: [],      // main rows after filters
   filteredRej: [],   // rejected rows after date filter
+  filteredDetails: [], // details rows after filters
   enterprises: [],
   teams: [],
   accounts: [],
@@ -955,6 +957,31 @@ function onData(json) {
     edited_images: num(r.edited_images),
   })).filter((r) => r.createdDate);
 
+  // Per-image details (third query) — columns:
+  // createdDate, rd.image_id, image_category, ai.enterprise_id, enterprise_name,
+  // ai.team_id, team_name, rejected_comment, image_action
+  // Metabase exports these column names verbatim including the dotted prefixes,
+  // so we look up multiple variants for safety.
+  state.details = (json.details || []).map((r) => {
+    const get = (...keys) => {
+      for (const k of keys) {
+        if (r[k] !== undefined && r[k] !== null && String(r[k]).length) return r[k];
+      }
+      return "";
+    };
+    return {
+      createdDate: parseDate(get("createdDate", "created_date", "date")),
+      image_id: String(get("rd.image_id", "image_id", "rd_image_id")).trim(),
+      image_category: String(get("image_category")).trim(),
+      enterprise_id: String(get("ai.enterprise_id", "enterprise_id", "ai_enterprise_id")).trim(),
+      enterprise_name: String(get("enterprise_name")).trim() || "(unknown)",
+      team_id: String(get("ai.team_id", "team_id", "ai_team_id")).trim(),
+      team_name: String(get("team_name")).trim() || "(unknown)",
+      rejected_comment: String(get("rejected_comment")).trim() || "(blank)",
+      image_action: String(get("image_action")).trim(),
+    };
+  }).filter((r) => r.createdDate);
+
   // populate filter options
   state.enterprises = distinct(state.main.map((r) => r.enterprise_name)).sort();
   state.teams = distinct(state.main.map((r) => r.team_name)).sort();
@@ -1009,15 +1036,31 @@ function applyFilters() {
     return true;
   });
 
-  // Rejection trend source:
-  // - If any non-date filter is active, derive from main query's rejected_comments_array
-  //   (so we can scope by enterprise / team / account)
-  // - Otherwise use the dedicated rejected query (more authoritative, has volume)
-  const hasNonDateFilter = !!(ent || tm || acc);
-  state.rejFromMain = hasNonDateFilter;
+  // Filter the per-image details query (covers everything we need for the
+  // rejection drill-down: enterprise, team_id, image_id, rejected_comment).
+  // We can't filter by account_type here because that column isn't in the details
+  // query — we honour enterprise + team + date instead.
+  state.filteredDetails = state.details.filter((r) => {
+    if (from && r.createdDate < from) return false;
+    if (to && r.createdDate > to) return false;
+    if (ent && r.enterprise_name !== ent) return false;
+    if (tm && r.team_name !== tm) return false;
+    // Only keep rows that actually have a rejected comment
+    if (!r.rejected_comment || r.rejected_comment === "(blank)") return false;
+    return true;
+  });
 
-  if (hasNonDateFilter) {
-    // Build synthetic rejected rows from state.filtered
+  // Rejection trend source — prefer the per-image details query (richest, filterable).
+  // Fallback to the dedicated rejected aggregate, or synthesised from main if needed.
+  if (state.filteredDetails.length > 0) {
+    state.rejSource = "details";
+    state.filteredRej = state.filteredDetails.map((r) => ({
+      createdDate: r.createdDate,
+      rejected_comment: r.rejected_comment,
+      edited_images: 1,
+    }));
+  } else if (ent || tm || acc) {
+    state.rejSource = "main";
     const synth = [];
     for (const r of state.filtered) {
       for (const c of r.rejected_comments_array) {
@@ -1026,6 +1069,7 @@ function applyFilters() {
     }
     state.filteredRej = synth;
   } else {
+    state.rejSource = "rejected";
     state.filteredRej = state.rejected.filter((r) => {
       if (from && r.createdDate < from) return false;
       if (to && r.createdDate > to) return false;
@@ -1545,44 +1589,107 @@ function rejCommentColumns() {
     { key: "images_count", label: "Image IDs", num: true },
   ];
 }
+
+// Step 1: per-date counts for a given rejection comment.
+// Source priority: details query → main query rejected_comments_array → dedicated rejected query.
 function rejCommentBreakdown(comment) {
-  // Step 1 of drill: per-date counts only. Clicking a row opens step 2.
-  const byDate = new Map();
-  for (const r of state.filteredRej) {
-    if (r.rejected_comment !== comment) continue;
-    if (!byDate.has(r.createdDate)) byDate.set(r.createdDate, 0);
-    byDate.set(r.createdDate, byDate.get(r.createdDate) + r.edited_images);
-  }
   const out = [];
-  for (const [date, count] of byDate.entries()) {
-    const mainRowsThatDay = state.filtered.filter((r) =>
-      r.createdDate === date && r.rejected_comments_array.includes(comment)
-    );
-    const enterprises = distinct(mainRowsThatDay.map((r) => r.enterprise_name));
-    const ids = [];
-    for (const r of mainRowsThatDay) ids.push(...r.edited_image_ids);
-    const idsDistinct = distinct(ids);
-    out.push({
-      date,
-      count,
-      enterprises_count: enterprises.length,
-      images_count: idsDistinct.length,
-      _onClick: () => openRejDateDetail(comment, date, mainRowsThatDay),
-    });
+  const byDate = new Map();
+
+  if (state.rejSource === "details") {
+    // Real per-image rows — exact counts of enterprises and image IDs available.
+    for (const r of state.filteredDetails) {
+      if (r.rejected_comment !== comment) continue;
+      if (!byDate.has(r.createdDate)) byDate.set(r.createdDate, []);
+      byDate.get(r.createdDate).push(r);
+    }
+    for (const [date, rows] of byDate.entries()) {
+      const enterprises = distinct(rows.map((r) => r.enterprise_name));
+      const ids = distinct(rows.map((r) => r.image_id).filter(Boolean));
+      out.push({
+        date,
+        count: rows.length,
+        enterprises_count: enterprises.length,
+        images_count: ids.length,
+        _onClick: () => openRejDateDetailFromDetails(comment, date, rows),
+      });
+    }
+  } else {
+    // Fallback path — use whatever's in state.filteredRej + the main rows for context.
+    const tmp = new Map();
+    for (const r of state.filteredRej) {
+      if (r.rejected_comment !== comment) continue;
+      tmp.set(r.createdDate, (tmp.get(r.createdDate) || 0) + r.edited_images);
+    }
+    for (const [date, count] of tmp.entries()) {
+      const mainRowsThatDay = state.filtered.filter((r) =>
+        r.createdDate === date && r.rejected_comments_array.includes(comment)
+      );
+      const enterprises = distinct(mainRowsThatDay.map((r) => r.enterprise_name));
+      const ids = [];
+      for (const r of mainRowsThatDay) ids.push(...r.edited_image_ids);
+      out.push({
+        date,
+        count,
+        enterprises_count: enterprises.length,
+        images_count: distinct(ids).length,
+        _onClick: () => openRejDateDetailFromMain(comment, date, mainRowsThatDay),
+      });
+    }
   }
+
   return out.sort((a, b) => a.date.localeCompare(b.date));
 }
 
-// Step 2: clicking a date in rejection drill — show enterprise × image_id × comment list
-function openRejDateDetail(comment, date, mainRowsThatDay) {
-  // Build one row per (enterprise, image_id) pair on this date for this comment.
-  // Image IDs come from edited_image_ids of main rows that had this comment that day.
+// Step 2 (preferred): clicking a date — list pulled straight from details rows.
+// One row per (enterprise, team_id, image_id) for that date + comment.
+function openRejDateDetailFromDetails(comment, date, rows) {
+  const seen = new Set();
+  const deduped = [];
+  for (const r of rows) {
+    const k = r.enterprise_name + "|" + r.team_id + "|" + r.image_id;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    deduped.push({
+      enterprise_name: r.enterprise_name,
+      enterprise_id: r.enterprise_id || "—",
+      team_id: r.team_id || "—",
+      team_name: r.team_name,
+      image_id: r.image_id || "—",
+      image_category: r.image_category || "—",
+      rejected_comment: r.rejected_comment,
+    });
+  }
+  // sort by enterprise then image_id
+  deduped.sort((a, b) =>
+    a.enterprise_name.localeCompare(b.enterprise_name) ||
+    String(a.image_id).localeCompare(String(b.image_id))
+  );
+
+  openDrill({
+    title: date + " · " + (comment.length > 60 ? comment.slice(0, 60) + "…" : comment),
+    sub: deduped.length + " image" + (deduped.length !== 1 ? "s" : "") + " · " +
+         distinct(deduped.map((r) => r.enterprise_name)).length + " enterprise(s)",
+    rows: deduped,
+    columns: [
+      { key: "enterprise_name", label: "Enterprise" },
+      { key: "team_id", label: "Team ID" },
+      { key: "team_name", label: "Team" },
+      { key: "image_id", label: "Image ID" },
+      { key: "image_category", label: "Category" },
+      { key: "rejected_comment", label: "Rejected comment" },
+    ],
+  });
+}
+
+// Step 2 (fallback): same shape, derived from main query rows.
+function openRejDateDetailFromMain(comment, date, mainRowsThatDay) {
   const rows = [];
   for (const r of mainRowsThatDay) {
     if (!r.edited_image_ids.length) {
-      // No image IDs — still show an aggregate row so the enterprise is visible
       rows.push({
         enterprise_name: r.enterprise_name,
+        team_id: r.team_id || "—",
         team_name: r.team_name,
         image_id: "—",
         rejected_comment: comment,
@@ -1592,16 +1699,16 @@ function openRejDateDetail(comment, date, mainRowsThatDay) {
     for (const id of r.edited_image_ids) {
       rows.push({
         enterprise_name: r.enterprise_name,
+        team_id: r.team_id || "—",
         team_name: r.team_name,
         image_id: id,
         rejected_comment: comment,
       });
     }
   }
-  // Dedupe identical rows
   const seen = new Set();
   const deduped = rows.filter((r) => {
-    const k = r.enterprise_name + "|" + r.team_name + "|" + r.image_id;
+    const k = r.enterprise_name + "|" + r.team_id + "|" + r.image_id;
     if (seen.has(k)) return false;
     seen.add(k);
     return true;
@@ -1614,6 +1721,7 @@ function openRejDateDetail(comment, date, mainRowsThatDay) {
     rows: deduped,
     columns: [
       { key: "enterprise_name", label: "Enterprise" },
+      { key: "team_id", label: "Team ID" },
       { key: "team_name", label: "Team" },
       { key: "image_id", label: "Image ID" },
       { key: "rejected_comment", label: "Rejected comment" },
